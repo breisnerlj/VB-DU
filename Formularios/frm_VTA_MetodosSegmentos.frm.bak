@@ -1,0 +1,483 @@
+VERSION 5.00
+Object = "{BDC217C8-ED16-11CD-956C-0000C04E4C0A}#1.1#0"; "TABCTL32.OCX"
+Begin VB.Form frm_VTA_MetodosSegmentos 
+   BorderStyle     =   1  'Fixed Single
+   Caption         =   "Metodos y Segmentos"
+   ClientHeight    =   7800
+   ClientLeft      =   45
+   ClientTop       =   330
+   ClientWidth     =   8460
+   LinkTopic       =   "Form1"
+   MaxButton       =   0   'False
+   MinButton       =   0   'False
+   ScaleHeight     =   7800
+   ScaleWidth      =   8460
+   StartUpPosition =   2  'CenterScreen
+   Begin VB.CheckBox chkRET 
+      Caption         =   "Retiro en Tienda"
+      Height          =   495
+      Left            =   240
+      TabIndex        =   3
+      Top             =   600
+      Width           =   2175
+   End
+   Begin VB.CommandButton cmdAceptar 
+      Caption         =   "Aceptar"
+      Height          =   495
+      Left            =   3480
+      TabIndex        =   2
+      Top             =   7200
+      Width           =   1335
+   End
+   Begin TabDlg.SSTab SSTab1 
+      Height          =   5655
+      Left            =   120
+      TabIndex        =   0
+      Top             =   1320
+      Width           =   8175
+      _ExtentX        =   14420
+      _ExtentY        =   9975
+      _Version        =   393216
+      Tabs            =   1
+      TabsPerRow      =   4
+      TabHeight       =   520
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      TabCaption(0)   =   "EXP"
+      TabPicture(0)   =   "frm_VTA_MetodosSegmentos.frx":0000
+      Tab(0).ControlEnabled=   -1  'True
+      Tab(0).Control(0)=   "grdSegmentos"
+      Tab(0).Control(0).Enabled=   0   'False
+      Tab(0).ControlCount=   1
+      Begin vbp_Ventas.ctlGrillaArray grdSegmentos 
+         Height          =   4335
+         Left            =   120
+         TabIndex        =   1
+         Top             =   720
+         Width           =   7935
+         _ExtentX        =   13996
+         _ExtentY        =   7646
+         MenuPopUp       =   0   'False
+         Resalte         =   0   'False
+      End
+   End
+End
+Attribute VB_Name = "frm_VTA_MetodosSegmentos"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Explicit
+
+Dim data As New Dictionary
+Dim xListaArray As New XArrayDB
+Public Parametro As String
+Public Tipo As String '1 => ubigeo, 2 => coordenadas, 3 => local
+Private grdLeft As Double
+Private grdTop As Double
+Private flgTabClick As Boolean
+Dim objWS As New clsWebService
+Public CodLocalPrecio As String
+Public CodLocalReferencia As String
+Public lat1, lng1 As String
+
+'
+Private strGrupo As String
+Private strCapacidad As String
+Private strPedidos As String
+Private strHora As String
+Private strValor As String
+Private strSegmento As String
+Private strHabilitado As String
+Private strTipoCode As String
+Private strDia As String
+Public strPrecioTipo As String
+Public MS_continua As Boolean
+
+
+Private Sub cmdAceptar_Click()
+'I.CVIERA 21.12.2020
+    strCapacidad = ""
+    strValor = ""
+    strGrupo = ""
+    strPedidos = ""
+    strHora = ""
+    strSegmento = ""
+    strHabilitado = ""
+    strTipoCode = ""
+    strPrecioTipo = ""
+    Dim X, i, j, a, B As Integer
+    Dim objLocal As New clsLocal
+    'I.ECASTILLO 05.01.2021
+    Dim rsCia As oraDynaset
+    Dim Cia
+    'F.ECASTILLO 05.01.2021
+    objVenta.bk_chkRET = chkRET.Value
+    If objVenta.bk_chkRET = "1" Then strTipoCode = "RET": GoTo continuarFlujo
+    If grdSegmentos.ApproxCount = 0 Then Exit Sub
+    strValor = grdSegmentos.Columns("Valor").Value
+    strSegmento = grdSegmentos.Columns("Segmento").Value
+    'SE COMENTA PORQUE DA ERROR AL BUSCAR EL CODLOCAL PRECIO, NO EXISTE EN BD
+    CodLocalPrecio = objLocal.GetCodBTL(grdSegmentos.Columns("LocalCode").Value)
+    strDia = grdSegmentos.Columns("Dia").Value
+    CodLocalReferencia = CodLocalPrecio
+    'I.ECASTILLO 05.01.2021
+    objVenta.respetaLocal = True
+    Set rsCia = gclsOracle.FN_Cursor("btlprod.pkg_local.get_cia_x_local", 0, CodLocalReferencia)
+    If (rsCia.RecordCount > 0) Then
+      Cia = CStr(rsCia(1))
+    End If
+    Set rsCia = Nothing
+    'cboCia.BoundText = cia
+    mdiPrincipal.ctlCliente1.sCia = Cia
+    mdiPrincipal.ctlCliente1.LimpiarLocalDespacho
+    mdiPrincipal.ctlCliente1.LocalAsignado = ""
+    mdiPrincipal.ctlCliente1.LocalDespacho = ""
+    'F.ECASTILLO 05.01.2021
+    mdiPrincipal.ctlCliente1.reasignaLocales CodLocalPrecio, CodLocalReferencia
+'    mdiPrincipal.ctlCliente1.LocalAsignado = CodLocalPrecio
+'    mdiPrincipal.ctlCliente1.LocalDespacho = CodLocalReferencia
+    
+
+    i = 0
+    For i = 1 To data("data").Count()
+        For X = 1 To data("data")(i)("deliveryMethods").Count()
+            strTipoCode = data("data")(i)("deliveryMethods")(X)("serviceTypeCode")
+            strPrecioTipo = data("data")(i)("deliveryMethods")(X)("deliveryAmount")
+            If SSTab1.Caption = "EXP" Then
+                If SSTab1.Caption = strTipoCode Then
+                    Exit For
+                End If
+            ElseIf SSTab1.Caption = "AM_PM" Then
+                If SSTab1.Caption = strTipoCode Then
+                    Exit For
+                End If
+            ElseIf SSTab1.Caption = "PROG" Then
+                If SSTab1.Caption = strTipoCode Then
+                    Exit For
+                End If
+            End If
+        Next X
+    Next i
+    If frm_VTA_Busqueda.grdProductos.ApproxCount > 0 Then
+        If frm_VTA_Busqueda.grdProductos.Columns("COD_PRODUCTO").Value = "09938" Then
+            frm_VTA_Busqueda.grdProductos.Columns("PRECIO").Value = Format(strPrecioTipo, "###,###.00")
+            frm_VTA_Busqueda.grdProductos.Columns("FLG_SEG").Value = 1
+        End If
+    End If
+    Dim Buscar As String ' | 05.01.2021.REVISAR
+'    For i = 0 To objVenta.Producto.UpperBound(1)
+'    If frmPedido.grdPedido.ApproxCount > 0 Then
+'        a = 0
+'        For a = 0 To frmPedido.grdPedido.ApproxCount - 1
+'            'For j = 0 To frmPedido.grdPedido.Columns.Count - 1
+'                If Not IsNull(frmPedido.grdPedido.Columns(0).CellValue(a)) Then
+'                    Buscar = CStr(frmPedido.grdPedido.Columns(0).CellValue(a))
+'            If Buscar = "09938" Then
+'                        frmPedido.grdPedido.Columns(4).Value = Format(strPrecioTipo, "###,###.00")
+'                                'frmPedido.grdPedido.Array1 = objVenta.AgregaProducto(CStr(frmPedido.grdPedido.Columns(0).Value), CStr(frmPedido.grdPedido.Columns(1).Value), CStr(frmPedido.grdPedido.Columns(3).Value), 0, CStr(frmPedido.grdPedido.Columns(4).Value), objVenta.CodigoTipoVenta, 0, , , , , , 1, , , , , frmPedido.grdPedido.Columns(4).Value, , , , , , 1)
+'                            'For i = 0 To objVenta.Producto.UpperBound(1)
+'                                    objVenta.AgregaProducto objVenta.Producto(i, 0), objVenta.Producto(i, 1), objVenta.Producto(i, 3), IIf(objVenta.Producto(i, 2) = "U", 0, 1), CStr(strPrecioTipo), objVenta.CodigoTipoVenta, objVenta.Producto(i, 7), , , , , , , , , , , CStr(strPrecioTipo), , , , , , 1
+'                            'Next i
+'                                'objVenta.Producto(i, 0), objVenta.Producto(i, 1), objVenta.Producto(i, 3), IIf(objVenta.Producto(i, 2) = "U", 0, 1), frmPedido.grdPedido.Columns(4).CellValue(a), objVenta.CodigoTipoVenta, objVenta.Producto(i, 7), , , , , , , , , , , frmPedido.grdPedido.Columns(4).CellValue(a), , , , , , 1
+'                                'frmPedido.grdPedido.Array1 = objVenta.AgregaProducto(lblCodigo.Caption, lblDescripcion.Caption, STRtxtCantidad, chkFraccionamiento, frm_VTA_Busqueda.grdProductos.Columns("PRECIO").Value, objVenta.CodigoTipoVenta, cRegalo, , , , , , strFlgReceta, PctComi, txtNroLote.Text, txtFechaVencimiento.Text, , frm_VTA_Busqueda.grdProductos.Columns("PRECIO").Value, , , FracEnabled, , , frm_VTA_Busqueda.grdProductos.Columns("FLG_SEG").Value)
+'            End If
+'                        'frmPedido.grdPedido.MoveNext
+'                Else
+'                    Buscar = ""
+'                End If
+'            'Next j
+'
+'            'frmPedido.grdPedido.MoveNext
+'        Next a
+''        frmPedido.grdPedido.Limpiar
+''        frmPedido.RefrescarGrilla
+'            'frmPedido.grdPedido.Refresh
+'    End If
+'    Next i
+    'I.ECASTILLO 05.01.2021 | busca producto dlv en los productos del carrito y actualiza precio
+    Dim nuevoPrecio As Double
+    For i = 0 To objVenta.Producto.UpperBound(1)
+        Buscar = objVenta.Producto(i, 0)
+        If Buscar = "09938" Then
+'            frmPedido.grdPedido.Array1 = objVenta.AgregaProducto(lblCodigo.Caption, _
+                                        lblDescripcion.Caption, STRtxtCantidad, _
+                                        chkFraccionamiento, oraDato(4).Value, _
+                                        objVenta.CodigoTipoVenta, cRegalo, , , , , , _
+                                        strFlgReceta, PctComi, txtNroLote.Text, _
+                                        txtFechaVencimiento.Text, , oraDato(5), , , _
+                                        FracEnabled, , , _
+                                        frm_VTA_Busqueda.grdProductos.Columns("FLG_SEG").Value)
+            'debido a que el producto DLV no es fraccionable, el calculo para este caso queda pendiente
+            nuevoPrecio = IIf(objVenta.Producto(i, 6) = "0", objVenta.Producto(i, 5) * CDbl(val(strPrecioTipo)), (CDbl(val(strPrecioTipo)) / 1) * objVenta.Producto(i, 3))
+            objVenta.AgregaProducto objVenta.Producto(i, 0), objVenta.Producto(i, 1), _
+                                    objVenta.Producto(i, 3), objVenta.Producto(i, 6), _
+                                    nuevoPrecio, objVenta.Producto(i, 5), _
+                                    objVenta.Producto(i, 7), , , , , , _
+                                    objVenta.Producto(i, 21), objVenta.Producto(i, 13), _
+                                    objVenta.Producto(i, 22), objVenta.Producto(i, 23), , _
+                                    nuevoPrecio, , , objVenta.Producto(i, 2), , , _
+                                    1
+        End If
+    Next i
+    If objVenta.Producto.UpperBound(1) >= 0 Then
+        frmPedido.Cal_Promo
+        frmPedido.Cal_Montos
+        frmPedido.grdPedido.Rebind
+        'frmPedido.grdPedido.Refresh
+    End If
+    'F.ECASTILLO 05.01.2021
+continuarFlujo:
+    MS_continua = True
+    frm_VTA_PreviaTomaPedido.flgContinua = True
+    mdiPrincipal.ctlCliente1.seleccionManualLocal = True
+    objVenta.flgDatosCapacidad = True
+    If grdSegmentos.ApproxCount <> 0 Then
+        objVenta.bk_codLocalCapacidad = grdSegmentos.Columns("LocalCode").Value
+        objVenta.bk_FechaCapacidad = strDia
+        objVenta.bk_HoraCapacidad = strValor
+    End If
+    objVenta.bk_ServiceType = strTipoCode
+    objVenta.bk_flgPactado = 1
+    'I.ECASTILLO 27.10.2020
+    '17.12.2020 | se comenta función, volver a usar
+    objVenta.isLocalDcCappa = "" & objLocal.GetIndCDCAP(mdiPrincipal.ctlCliente1.LocalDespacho)
+    'F.ECASTILLO 27.10.2020
+    Unload Me
+'F.CVIERA 21.12.2020
+End Sub
+
+'I.ECASTILLO 17.12.2020
+Private Sub Form_Activate()
+    Dim coords, Lat, Lng As String
+    Dim X, i, j, xx, ii, jj As Integer
+    Dim rsCia As oraDynaset
+    Dim sCia As String
+    Dim channel As String
+    Dim Cia As String
+    MS_continua = False
+    grdLeft = grdSegmentos.left
+    grdTop = grdSegmentos.top
+    flgTabClick = False
+    Set rsCia = gclsOracle.FN_Cursor("btlprod.pkg_local.get_cia_x_local", 0, mdiPrincipal.ctlCliente1.LocalDespacho)
+    If (rsCia.RecordCount > 0) Then
+      sCia = CStr(rsCia(1))
+    End If
+    Set rsCia = Nothing
+    'ENVIAR CANAL Y CIA
+    channel = "CALL"
+    If Tipo = "1" Then
+        Select Case sCia
+            Case "94", "93", "92", "1DLV"
+                Cia = "IKF"
+                Set data = objWS.listaMetodosSegmentos_Ubigeo(Parametro, channel, Cia)
+            Case ""
+                Set data = Nothing
+            Case Else
+                Cia = "MF"
+                Set data = objWS.listaMetodosSegmentosMF_Ubigeo(Parametro, channel, Cia)
+        End Select
+    ElseIf Tipo = "2" Then
+        coords = Split(Parametro, ",")
+        Lat = coords(0)
+        lat1 = Lat
+        Lng = coords(1)
+        lng1 = Lng
+        Select Case sCia
+            Case "94", "93", "92", "1DLV"
+                Cia = "IKF"
+                Set data = objWS.listaMetodosSegmentos_Coords(Lat, Lng, channel, Cia)
+            Case ""
+                Set data = Nothing
+            Case Else
+                Cia = "MF"
+                Set data = objWS.listaMetodosSegmentosMF_Coords(Lat, Lng, channel, Cia)
+        End Select
+    ElseIf Tipo = "3" Then
+        Select Case sCia
+            Case "94", "93", "92", "1DLV"
+                Cia = "IKF"
+                Set data = objWS.listaMetodosSegmentos_Local(Parametro, channel, Cia)
+            Case ""
+                Set data = Nothing
+            Case Else
+                Cia = "MF"
+                Set data = objWS.listaMetodosSegmentosMF_Local(Parametro, channel, Cia)
+        End Select
+    End If
+    setFormatGrid
+    xListaArray.ReDim 0, -1, 0, 8
+    grdSegmentos.Array1 = xListaArray
+    If Not data Is Nothing Then
+        If IsObject(data("data")) = False Then
+            Exit Sub
+        End If
+        X = 0
+
+        i = 0
+        SSTab1.Tab = 0
+        SSTab1.Caption = "-----"
+        For i = 1 To data("data").Count()
+            If IsObject(data("data")(i)) = False Then
+                For X = 1 To data("data")("deliveryMethods").Count()
+                    If X = 1 Then
+                        SSTab1.Caption = data("data")("deliveryMethods")(X)("serviceTypeCode")
+                    Else
+                        SSTab1.Tabs = SSTab1.Tabs + 1
+                        SSTab1.Tab = SSTab1.Tabs - 1
+                        SSTab1.Caption = data("data")("deliveryMethods")(X)("serviceTypeCode")
+                    End If
+                Next X
+            Else
+                For X = 1 To data("data")(i)("deliveryMethods").Count()
+                    If X = 1 Then
+                        SSTab1.Caption = data("data")(i)("deliveryMethods")(X)("serviceTypeCode")
+                    Else
+                        SSTab1.Tabs = SSTab1.Tabs + 1
+                        SSTab1.Tab = SSTab1.Tabs - 1
+                        SSTab1.Caption = data("data")(i)("deliveryMethods")(X)("serviceTypeCode")
+                    End If
+                Next X
+            End If
+        Next i
+    Else
+        SSTab1.Caption = "-----"
+    End If
+    flgTabClick = True
+    SSTab1.Tab = 0
+    
+    Debug.Print "A"
+End Sub
+
+Function setFormatGrid()
+    Dim arrCampos As Variant
+    Dim arrCaption As Variant
+    Dim arrAncho As Variant
+    Dim arrAlineacion As Variant
+    'dia
+    'mensaje
+    'capacidad
+    'tiempo delivery
+    'segmento
+    'valor
+    'local
+    arrCampos = Array("", "", "", "", "", "")
+    arrCaption = Array("Dia", "Fecha", "Tiempo de Dlv", "Segmento", "Valor", "LocalCode")
+    arrAncho = Array(1500, 2000, 1500, 2000, 0, 0)
+    arrAlineacion = Array(dbgLeft, dbgLeft, dbgLeft, dbgLeft, dbgLeft, dbgLeft)
+    
+    grdSegmentos.FormatoGrilla arrCampos, arrCaption, arrAncho, arrAlineacion
+    grdSegmentos.Columns("Valor").Visible = False
+    grdSegmentos.Columns("LocalCode").Visible = False
+End Function
+
+Private Sub Form_Unload(Cancel As Integer)
+    If MS_continua = False Then
+        frm_VTA_PreviaTomaPedido.flgContinua = False
+        mdiPrincipal.ctlCliente1.seleccionManualLocal = False
+        objVenta.flgDatosCapacidad = False
+    End If
+    Unload Me
+End Sub
+
+Private Sub SSTab1_Click(PreviousTab As Integer)
+    Dim X, i, j, xx, ii, jj As Integer
+    If flgTabClick = False Then
+        Exit Sub
+    End If
+    xListaArray.ReDim 0, -1, 0, 9
+    grdSegmentos.left = grdLeft
+    grdSegmentos.top = grdTop
+    grdSegmentos.MoveFirst
+    grdSegmentos.Limpiar
+    grdSegmentos.Array1 = xListaArray
+    If Not data Is Nothing Then
+        If IsObject(data("data")) = False Then
+            Exit Sub
+        End If
+        X = 0
+        i = 0
+        For i = 1 To data("data").Count()
+            If IsObject(data("data")(i)) = False Then
+                For X = 1 To data("data")("deliveryMethods").Count()
+                    If SSTab1.Caption = data("data")("deliveryMethods")(X)("serviceTypeCode") Then
+                        j = 0
+                        ii = 0
+                        If IsObject(data("data")("deliveryMethods")(X)("capabilities")) = True Then
+                            For j = 1 To data("data")("deliveryMethods")(X)("capabilities").Count()
+                                xx = 0
+                                For xx = 1 To data("data")("deliveryMethods")(X)("capabilities")(j)("schedules").Count()
+                                    xListaArray.AppendRows
+                                    'dia
+                                    'mensaje
+                                    'tiempo delivery
+                                    'segmento
+                                    'valor
+                                    'local
+                                    xListaArray(ii, 0) = data("data")("deliveryMethods")(X)("capabilities")(j)("day")
+                                    xListaArray(ii, 1) = data("data")("deliveryMethods")(X)("capabilities")(j)("message")
+                                    xListaArray(ii, 2) = data("data")("deliveryMethods")(X)("capabilities")(j)("deliveryTime")
+                                    xListaArray(ii, 3) = data("data")("deliveryMethods")(X)("capabilities")(j)("schedules")(xx)("time")
+                                    xListaArray(ii, 4) = data("data")("deliveryMethods")(X)("capabilities")(j)("schedules")(xx)("value")
+                                    xListaArray(ii, 5) = data("data")("localCode")
+                                    ii = ii + 1
+                                Next xx
+                            Next j
+                        End If
+                    End If
+                Next X
+            Else
+                For X = 1 To data("data")(i)("deliveryMethods").Count()
+                    ii = 0
+                    If SSTab1.Caption = data("data")(i)("deliveryMethods")(X)("serviceTypeCode") Then
+                        j = 0
+                        ii = 0
+                        If IsObject(data("data")(i)("deliveryMethods")(X)("capabilities")) = True Then
+                            For j = 1 To data("data")(i)("deliveryMethods")(X)("capabilities").Count()
+                                xx = 0
+                                For xx = 1 To data("data")(i)("deliveryMethods")(X)("capabilities")(j)("schedules").Count()
+                                    xListaArray.AppendRows
+                                    'dia
+                                    'mensaje
+                                    'tiempo delivery
+                                    'segmento
+                                    'valor
+                                    'local
+                                    xListaArray(ii, 0) = data("data")(i)("deliveryMethods")(X)("capabilities")(j)("day")
+                                    xListaArray(ii, 1) = data("data")(i)("deliveryMethods")(X)("capabilities")(j)("message")
+                                    xListaArray(ii, 2) = data("data")(i)("deliveryMethods")(X)("capabilities")(j)("deliveryTime")
+                                    xListaArray(ii, 3) = data("data")(i)("deliveryMethods")(X)("capabilities")(j)("schedules")(xx)("time")
+                                    xListaArray(ii, 4) = data("data")(i)("deliveryMethods")(X)("capabilities")(j)("schedules")(xx)("value")
+                                    xListaArray(ii, 5) = data("data")(i)("localCode")
+                                    ii = ii + 1
+                                Next xx
+                            Next j
+                        End If
+                    End If
+                Next X
+            End If
+        Next i
+    End If
+    
+    grdSegmentos.Array1 = xListaArray
+    grdSegmentos.Rebind
+    grdSegmentos.Refresh
+End Sub
+'F.ECASTILLO 17.12.2020
+Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
+    Select Case KeyCode
+    Case vbKeyEscape
+        frm_VTA_PreviaTomaPedido.flgContinua = False
+        mdiPrincipal.ctlCliente1.seleccionManualLocal = False
+        objVenta.flgDatosCapacidad = False
+        MS_continua = False
+        Unload Me
+    End Select
+End Sub

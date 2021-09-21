@@ -1,0 +1,1664 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "clsProducto"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+Option Explicit
+Private byteNumElementosFormaPago As Byte
+Dim objProducto As New clsProducto
+Private m_sDesProducto As String
+
+'Agregado por MLEVANO para LOTE DE PRODUCTO 27/08/2012
+Public Function ListaLote(ByVal strCodProd As String, ByVal strCodLocal As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaLote = gclsOracle.FN_Cursor("BTLPROD.FN_LOTES_DE_PRODUCTO", 0, strCodProd, strCodLocal)
+    
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+'Fin
+
+'Agregado por MLEVANO para LOTE DE PRODUCTO EN DEVOLUCION DE RECEPCION CIEGA 21/11/2012
+Public Function ListaLoteXFacXRc(ByVal intEntrega As String, ByVal strCodProd As String, ByVal strCodLocal As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaLoteXFacXRc = gclsOracle.FN_Cursor("BTLPROD.FN_FAC_X_RC_X_LOTE", 0, intEntrega, strCodProd, strCodLocal)
+    
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+'Fin
+
+
+
+Public Function Lista(ByVal strCia As String, strCodLocal As String, _
+                      ByVal strCodPrecio As String, _
+                      ByVal strBuscar As String, _
+                      Optional ByVal strAsoSustituto As String, _
+                      Optional strCodProd As String, _
+                      Optional strCodLocalSolict As String, _
+                      Optional ModalidadVenta As String, _
+                      Optional CodigoConvenio As String, _
+                      Optional strCodCiaSolict As String, _
+                      Optional tipoBusquedaVal As Integer _
+                      ) As oraDynaset
+                       
+    Dim OraSqlStmt As OraSqlStmt
+    Dim r As oraDynaset
+    Dim strCriterio As String
+    
+    strCriterio = Trim(strBuscar)
+    '''''Set Lista = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA", 0, strCIA, _
+                                                                     strCodLocal, _
+                                                                     strCodPrecio, _
+                                                                     strCriterio, _
+                                                                     strAsoSustituto, _
+                                                                     strCodProd)
+
+    gclsOracle.ODataBase.Parameters.Remove "P_RET_CURSOR"
+    gclsOracle.ODataBase.Parameters.Remove "P_CIA"
+    gclsOracle.ODataBase.Parameters.Remove "P_COD_LOCAL"
+    gclsOracle.ODataBase.Parameters.Remove "P_COD_PRECIO"
+    gclsOracle.ODataBase.Parameters.Remove "P_CRITERIO"
+    gclsOracle.ODataBase.Parameters.Remove "P_SUSTI"
+    gclsOracle.ODataBase.Parameters.Remove "P_PRODUCTO"
+    gclsOracle.ODataBase.Parameters.Remove "P_LOCAL_SOLICT"
+    gclsOracle.ODataBase.Parameters.Remove "P_COD_CONVENIO"
+    gclsOracle.ODataBase.Parameters.Remove "P_CIA_SOLICT"
+    gclsOracle.ODataBase.Parameters.Remove "P_COD_LOCAL_CALL"
+    gclsOracle.ODataBase.Parameters.Remove "A_TIPO_BUSQUEDA"
+
+    gclsOracle.ODataBase.Parameters.Add "P_RET_CURSOR", 0, ORAPARM_OUTPUT
+    gclsOracle.ODataBase.Parameters("P_RET_CURSOR").serverType = ORATYPE_CURSOR
+    
+    gclsOracle.ODataBase.Parameters.Add "P_CIA", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_COD_LOCAL", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_COD_PRECIO", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_CRITERIO", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_SUSTI", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_PRODUCTO", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_LOCAL_SOLICT", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_COD_CONVENIO", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_CIA_SOLICT", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "P_COD_LOCAL_CALL", "", ORAPARM_INPUT
+    gclsOracle.ODataBase.Parameters.Add "A_TIPO_BUSQUEDA", "", ORAPARM_INPUT
+    
+    gclsOracle.ODataBase.Parameters("P_CIA").Value = strCia
+    gclsOracle.ODataBase.Parameters("P_COD_LOCAL").Value = strCodLocal
+    gclsOracle.ODataBase.Parameters("P_COD_PRECIO").Value = strCodPrecio
+    gclsOracle.ODataBase.Parameters("P_CRITERIO").Value = strCriterio
+    gclsOracle.ODataBase.Parameters("P_SUSTI").Value = strAsoSustituto
+    gclsOracle.ODataBase.Parameters("P_PRODUCTO").Value = strCodProd
+    gclsOracle.ODataBase.Parameters("P_LOCAL_SOLICT").Value = strCodLocalSolict
+    gclsOracle.ODataBase.Parameters("P_COD_CONVENIO").Value = CodigoConvenio
+    gclsOracle.ODataBase.Parameters("P_CIA_SOLICT").Value = strCodCiaSolict
+    gclsOracle.ODataBase.Parameters("P_COD_LOCAL_CALL").Value = objUsuario.CodLocalCallCenter
+    gclsOracle.ODataBase.Parameters("A_TIPO_BUSQUEDA").Value = tipoBusquedaVal
+    
+    Set OraSqlStmt = gclsOracle.ODataBase.CreateSql("BEGIN :P_RET_CURSOR := CMR.PKG_PRODUCTO_DLV.FN_LISTA(:P_CIA,:P_COD_LOCAL,:P_COD_PRECIO,:P_CRITERIO,:P_SUSTI,:P_PRODUCTO, :P_LOCAL_SOLICT, :P_COD_CONVENIO, :P_CIA_SOLICT,:P_COD_LOCAL_CALL,:A_TIPO_BUSQUEDA);END;", ORASQL_FAILEXEC)
+
+    Set Lista = gclsOracle.ODataBase.Parameters("P_RET_CURSOR").Value
+                                                                     
+End Function
+
+Public Function ListaBusqueda(ByVal vstrDato As String) As oraDynaset
+'Envias el codigo o codigo de barra o descripcion y te devuelve
+'un set de registros del maestro de productos que se aproximan al criterio de busqueda
+On Error GoTo CtrlErr
+    Set ListaBusqueda = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA", 0, vstrDato)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaDato(ByVal strCia As String, _
+                        ByVal strCodLocal As String, _
+                        ByVal strCodPrecio As String, _
+                        ByVal strCodProducto As String, _
+                        ByVal intCtdProducto As String, _
+                        ByVal intFlgFraccion As Integer, _
+                        ByVal strCodConvenio As String, _
+                        Optional strCallcenter As String) As oraDynaset
+
+    Set ListaDato = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO_NEW.FN_DATO", 0, strCia, _
+                                    strCodLocal, _
+                                    strCodPrecio, _
+                                    strCodProducto, _
+                                    intCtdProducto, _
+                                    intFlgFraccion, _
+                                    strCodConvenio, _
+                                    strCallcenter)
+
+End Function
+
+Public Function ListaRegMagistral(ByVal CodCia As String, _
+                                  ByVal CodLocal As String, _
+                                  ByVal vstrProducto As String, _
+                                  ByVal vstrRucProv As String, _
+                                  ByVal vstrTipoInsumo As String) As oraDynaset
+    On Error GoTo CntrlError
+    Set ListaRegMagistral = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_PROD_REG_MAGISTRAL", 0, _
+                                                        CodCia, _
+                                                        CodLocal, _
+                                                        vstrProducto, _
+                                                        vstrRucProv, _
+                                                        vstrTipoInsumo)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaStockTotal(ByVal CodCia As String, ByVal CodigoProducto As String, Optional ByVal flgLima As String = "", Optional ByVal strZona As String = "", Optional ByVal TipoPrecio As String = "", Optional ByVal CodigoConvenio As String = "", Optional ByVal CodigoLocal As String = "", Optional ByVal CodigoDistrito As String = "") As oraDynaset
+    On Error GoTo CntrlError
+    
+    Set ListaStockTotal = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_STOCK_TOTAL", 0, CodCia, CodigoProducto, flgLima, strZona, TipoPrecio, CodigoConvenio, CodigoLocal)
+    
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+Public Function ListaStockTotalMFarma(ByVal CodCia As String, ByVal CodigoProducto As String, Optional ByVal flgLima As String = "", Optional ByVal strZona As String = "", Optional ByVal TipoPrecio As String = "", Optional ByVal CodigoConvenio As String = "", Optional ByVal CodigoLocal As String = "", Optional ByVal CodigoDistrito As String = "", Optional ByVal CiaDesp As String = "") As oraDynaset
+    On Error GoTo CntrlError
+'''''''    ' averiguar el local para llamar a funcion de db
+'''''''    If (CodCia = "99") Then
+'''''''     ' mi farma tiene menos parametros , jct
+'''''''     'MsgBox "CodCia, CodigoProducto, flgLima, strZona==" + CodCia + "," + CodigoProducto + "," + flgLima + "," + strZona
+'''''''     Set ListaStockTotal = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_STOCK_TOTAL_MFARMA", 0, CodCia, codigoproducto, flgLima, strZona, CodigoLocal)
+'''''''
+'''''''    Else
+'''''''     ' btl, jct
+'''''''     Set ListaStockTotal = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_STOCK_TOTAL", 0, CodCia, codigoproducto, flgLima, strZona, TipoPrecio, CodigoConvenio, CodigoLocal)
+'''''''    End If
+    Set ListaStockTotalMFarma = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_STOCK_TOTAL_MFARMA", 0, CodCia, CodigoProducto, flgLima, strZona, CodigoLocal, CiaDesp)
+    
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaStockTotalVta(ByVal CodCia As String, ByVal CodigoProducto As String, Optional ByVal flgLima As String = "", Optional ByVal strZona As String = "", Optional ByVal TipoPrecio As String = "", Optional ByVal CodigoConvenio As String = "", Optional ByVal CodigoLocal As String = "", Optional ByVal CodigoUbigeo As String = "") As oraDynaset
+    On Error GoTo CntrlError
+    Set ListaStockTotalVta = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_STOCK_TOTAL_VTA", 0, CodCia, CodigoProducto, flgLima, strZona, TipoPrecio, CodigoConvenio, CodigoLocal, CodigoUbigeo)
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.ListaStockTotalVta", Err.Description
+End Function
+
+Public Function ListaDevRM(ByVal vstrCodBtl As String, ByVal vstrRucProv As String) As String
+    On Error GoTo CntrlError
+    ListaDevRM = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_DEV_PRODUCTO_RM", vstrCodBtl, vstrRucProv)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaDescripcion(ByVal vstrProducto As String) As String
+    On Error GoTo CntrlError
+    ListaDescripcion = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_DES", vstrProducto)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+
+Public Function DevuelveCTDFRAC(ByVal vstrProducto As String) As Double
+    On Error GoTo CntrlError
+    DevuelveCTDFRAC = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO_DLV.FN_CTD_FRAC", vstrProducto)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaDevFracciona(ByVal vstrCodProd As String, ByVal CodigoLocal As String, ByVal CodigoModalidad As String) As String
+    On Error GoTo CntrlError
+    ListaDevFracciona = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_DEV_FRACCIONA_PROD", CodigoLocal, CodigoModalidad, vstrCodProd)
+    
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaCupones()
+    On Error GoTo CntrlError
+    Set ListaCupones = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_CUPONES", 0)
+    
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+''Autor: Juan Arturo Escate Espichan
+''Fecha: 13/06/2011
+''Descripcion: Nadie lo llama esta funcion, se hizo la prueba agregando un parametro
+Public Function old_PrecioTotProd(ByVal Cia As String, _
+                    ByVal CodLocal As String, _
+                    ByVal CadTipVta As String, _
+                    ByVal CadCodProducto As String, _
+                    ByVal CadCtdProducto As String, _
+                    ByVal CadFlgFraccion As String, _
+                    ByVal CodConvenio As String, _
+                    ByRef CadCodProductoNvo As String, _
+                    ByRef CadCtdProductoUNvo As String, _
+                    ByRef CadCtdProductoFNvo As String, _
+                    ByRef CadPrcProdUnitNvo As String, _
+                    ByRef CadFlgProdRegalo As String, _
+                    ByRef CadCodTipvtaNvo As String) As String
+
+    On Error GoTo CtrlErr
+Dim gvarValores As Variant
+Dim gvarIO As Variant
+    gvarValores = Array(Cia, _
+                    CodLocal, _
+                    CadTipVta, _
+                    CadCodProducto, _
+                    CadCtdProducto, _
+                    CadFlgFraccion, _
+                    CodConvenio, _
+                    CadCodProductoNvo, _
+                    CadCtdProductoUNvo, _
+                    CadCtdProductoFNvo, _
+                    CadPrcProdUnitNvo, _
+                    CadFlgProdRegalo, _
+                    CadCodTipvtaNvo)
+
+    gvarIO = Array(entrada, _
+                   entrada, _
+                   entrada, _
+                   entrada, _
+                   entrada, _
+                   entrada, _
+                   entrada, _
+                   Salida, _
+                   Salida, _
+                   Salida, _
+                   Salida, _
+                   Salida, _
+                   Salida)
+                   
+'    gvarError = gclsOracle.SP("CMR.PKG_PRODUCTO.BORRAR_SP_PRECIO_TOT_PROD", _
+                              gvarValores, _
+                              gvarIO)
+                              
+    old_PrecioTotProd = gclsOracle.SP("BTLPROD.PKG_PRE_VENTA.SP_PRECIO_TOT_PROD", _
+                              gvarValores, _
+                              gvarIO)
+
+    Exit Function
+CtrlErr:
+    Err.Raise Err.Description, "clsProducto", Err.Description
+End Function
+
+'*************************************************************************************
+' Metodo para calcular las promociones, se recibe como paramtero el array xProducto,
+'*************************************************************************************
+
+Public Sub ProcesaXProducto(ByVal oradb As OraDatabase, ByVal vCIA As String, ByVal vCodLocal As String, ByVal vCodConvenio As String, Optional ByVal vCodLocalDespacho As String = "", Optional ByVal optEfectivo As Boolean = False, Optional ByVal optCredito As Boolean = False, Optional ByVal strTpTarjeta As String = "", Optional ByVal lngTotal As Double = 0#)
+
+Dim strCadProducto As String
+Dim strCadCantidad As String
+Dim strCadFraccion As String
+Dim strCadTipoVenta  As String
+Dim strCadCtdProductoOrig As String
+Dim strCadFlgFraccionOrig As String
+Dim strCadFlgPromocion As String
+Dim strCadPrcSubTotal As String
+Dim strCadPrcPublico As String
+Dim strCadPromocion As String
+Dim strCadPromocionDcto As String
+Dim strCadPUNTOS As String
+Dim strCadFlgSeg As String 'CVIERA
+Dim vCadFlgSeg As Integer 'CVIERA
+Dim cadProdNew As String
+Dim cadCtdUNew As String
+Dim cadCtdFNew As String
+Dim cadPrcNew As String
+Dim cadTipoNew As String
+Dim cadFlgRegalo As String
+Dim cadIndRecetaNew As String
+Dim cadPctComiNew As String
+Dim cadDesProductoNew As String
+Dim cadPrcPublicNew As String
+Dim strCadTipoVentaTrue As String
+Dim Codigo As String
+Dim Unidades As Integer
+Dim Fracciones As Integer
+Dim Precio As Double
+Dim TipVenta As TipoVenta
+Dim RegaloFarmaco As String
+Dim Regalo As eProdRegalo
+Dim flgFarmaco As String
+Dim indicador As String
+Dim pctComision As Double
+Dim strDesProducto As String
+Dim PrecioPublico As Double
+Dim CadenaPromo As String
+Dim CadenaPromoDcto As String
+Dim CtdProducto As Integer
+Dim flgFraccion As String
+Dim i As Integer
+Dim Result As Long
+Dim encontro As Integer
+Dim strNroLote As String
+Dim strFchVmto As String
+Dim strCadPromocionE As String 'ECASTILLO 04.07.2020
+'Dim objTimer As New cGetTimer
+'I.CVIERA
+Dim ind0 As Integer
+
+For i = oradb.Parameters.Count - 1 To 0 Step -1
+        oradb.Parameters.Remove i
+Next
+
+oradb.Parameters.AddTable "A_ARR_COD_PROD_SEG", ORAPARM_OUTPUT, ORATYPE_VARCHAR2, 800, 800
+oradb.Parameters.AddTable "A_ARR_PRC_PROD_SEG", ORAPARM_OUTPUT, ORATYPE_VARCHAR2, 800, 800
+Dim arrCodProdSeg As OracleInProcServer.OraParamArray
+Dim arrPrcProdSeg As OracleInProcServer.OraParamArray
+Set arrCodProdSeg = oradb.Parameters("A_ARR_COD_PROD_SEG")
+Set arrPrcProdSeg = oradb.Parameters("A_ARR_PRC_PROD_SEG")
+'F.CVIERA
+
+'objTimer.StartTimer
+
+    On Error GoTo Control
+    'On Error GoTo CtrlErr
+    
+'    objVenta.Producto.QuickSort 0, objVenta.Producto.UpperBound(1), 5, XORDER_ASCEND, XTYPE_STRING
+
+'    For i = 0 To objVenta.Producto.UpperBound(1)
+'        If objVenta.Producto(i, 7) = "0" Then
+'            strCadProducto = strCadProducto & objVenta.Producto(i, 0) & "|"
+'            strCadCantidad = strCadCantidad & objVenta.Producto(i, 3) & "|"
+'            strCadFraccion = strCadFraccion & objVenta.Producto(i, 6) & "|"
+'            strCadTipoVenta = strCadTipoVenta & objVenta.Producto(i, 5) & "|"
+'        End If
+'    Next i
+    'For i = 0 To objVenta.Producto.UpperBound(1)
+    ind0 = 0 'CVIERA
+    For i = 0 To objVenta.Producto2.UpperBound(1)
+            strCadProducto = strCadProducto & objVenta.Producto2(i, 0) & "|"
+            strCadCantidad = strCadCantidad & objVenta.Producto2(i, 3) & "|"
+            strCadFraccion = strCadFraccion & objVenta.Producto2(i, 6) & "|"
+            strCadTipoVenta = strCadTipoVenta & objVenta.Producto2(i, 5) & "|"
+            strCadCtdProductoOrig = strCadCtdProductoOrig & objVenta.Producto2(i, 14) & "|"
+            strCadFlgFraccionOrig = strCadFlgFraccionOrig & objVenta.Producto2(i, 15) & "|"
+            strCadFlgPromocion = strCadFlgPromocion & objVenta.Producto2(i, 7) & "|"
+            'If objVenta.Producto.Count(1) = 1 Then
+            strCadPrcSubTotal = strCadPrcSubTotal & CDbl(objVenta.Producto2(i, 4)) & "|"
+            'ElseIf objVenta.Producto.Count(1) > 1 Then
+            '  strCadPrcSubTotal = strCadPrcSubTotal & CDbl(objVenta.Producto(i, 25)) & "|"
+            'End If
+            strCadPrcPublico = strCadPrcPublico & CDbl(objVenta.Producto2(i, 25)) & "|"
+            strCadPromocionE = strCadPromocionE & objVenta.Producto2(i, 26) & "|" 'ECASTILLO 04.07.2020
+            'I.CVIERA
+            If objVenta.Producto2(i, 30) = "1" Then
+                arrCodProdSeg(ind0) = objVenta.Producto2(i, 0)
+                arrPrcProdSeg(ind0) = CDbl(objVenta.Producto2(i, 4))
+                ind0 = ind0 + 1
+            End If
+'            strCadCodProdPrecio = objVenta.Producto2(i, 0) & "|" & frm_VTA_Busqueda.grdProductos.Columns("PRECIO").Value & "|"
+                        'F.CVIERA
+    Next i
+
+         
+            
+
+            If objUsuario.EsDelivery = True Then
+                strCadTipoVentaTrue = "001"
+            Else
+                strCadTipoVentaTrue = "000"
+            End If
+
+'Debug.Print strCadTipoVentaTrue
+'   PrecioTotProd gclsOracle.ODataBase, vCIA, _
+'            vCodLocal, _
+'            strCadTipoVenta, _
+'            strCadProducto, _
+'            strCadCantidad, _
+'            strCadFraccion, _
+'            vCodConvenio, _
+'            cadProdNew, _
+'            cadCtdUNew, _
+'            cadCtdFNew, _
+'            cadPrcNew, _
+'            cadFlgRegalo, _
+'            cadTipoNew
+
+'=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+'=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+'=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+
+
+byteNumElementosFormaPago = IIf(objVenta.FormaPago.UpperBound(1) < 0, 1, objVenta.FormaPago.UpperBound(1)) + 1
+
+If optEfectivo = True Or optCredito = True Then byteNumElementosFormaPago = byteNumElementosFormaPago + 1
+
+
+
+
+oradb.Parameters.Add "A_COD_CIA", vCIA, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_LOCAL", vCodLocal, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_LOCAL_DESPACHO", vCodLocalDespacho, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+oradb.Parameters.Add "A_CAD_COD_TIP_VTA", strCadTipoVenta, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_COD_PRODUCTO", strCadProducto, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_CTD_PRODUCTO", strCadCantidad, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_FLG_FRACCION", strCadFraccion, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_PRC_SUBTOTAL", strCadPrcSubTotal, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+oradb.Parameters.Add "A_CAD_PRC_PUBLICO", strCadPrcPublico, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+oradb.Parameters.Add "A_CAD_CTD_PRODUCTO_ORIG", strCadCtdProductoOrig, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_FLG_FRACCION_ORIG", strCadFlgFraccionOrig, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_FLG_PROMOCION", strCadFlgPromocion, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+oradb.Parameters.Add "A_NUM_CMP", "000", ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+'oradb.Parameters.AddTable "A_CAD_CODPROD_PRECIO", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200 '-----CVIERA30.12.2020
+
+    
+oradb.Parameters.AddTable "A_ARR_FORMA_PAGO", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200
+oradb.Parameters.AddTable "A_ARR_FPAGO_HIJO", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200
+oradb.Parameters.AddTable "A_ARR_IMPORTE_PAGO", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200
+oradb.Parameters.AddTable "A_ARR_NUM_TARJETA", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200
+oradb.Parameters.AddTable "A_ARR_DES_PRODUCTO", ORAPARM_OUTPUT, ORATYPE_VARCHAR2, 800, 800 'ECASTILLO 04.07.2020
+oradb.Parameters.Add "A_COD_CONVENIO", vCodConvenio, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+'23/01/08 pherrera se agrego para precios delivery
+Dim TipoPrecioDlv As String
+TipoPrecioDlv = ptmTipoPrecio
+If objUsuario.EsDelivery And objUsuario.flgDeliveryProv = "0" Then
+    TipoPrecioDlv = "3"
+End If
+
+oradb.Parameters.Add "A_TIP_PRECIO", Format(TipoPrecioDlv, "000"), ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+'oradb.Parameters.Add "A_CAD_COD_PRODUCTO_NVO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_CTD_PRODUCTO_U_NVO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_CTD_PRODUCTO_F_NVO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_PRC_PROD_SUBT_NVO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_FLG_PROD_REGALO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_COD_TIP_VTA_NVO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_IND_RECETA", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_PCT_COMI", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+'oradb.Parameters.Add "A_CAD_DES_PRODUCTO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_PUNTOS", Space(1000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_COD_PRODUCTO_NVO", Space(1000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_CTD_PRODUCTO_U_NVO", Space(500), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_CTD_PRODUCTO_F_NVO", Space(500), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_PRC_PROD_SUBT_NVO", Space(500), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_FLG_PROD_REGALO", Space(200), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_COD_TIP_VTA_NVO", Space(200), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_IND_RECETA", Space(200), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_PCT_COMI", Space(200), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_DES_PRODUCTO", Space(4000), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_TIPO_VTA", strCadTipoVentaTrue, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_CLIENTE", objVenta.CodigoCliente, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+oradb.Parameters.Add "A_CAD_PRC_PUBLIC_OUT", Space(500), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_PROMOCION_OUT", Space(800), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_PROMOCION_DCTO_OUT", Space(800), ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_MEDICO", objMedico.vCodMedico, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+
+oradb.Parameters.Add "A_FLG_CMR", gintFidelizado, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_COD_LOCAL_CALLCENT", objUsuario.CodLocalCallCenter, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_PROMOCION", strCadPromocionE, ORAPARM_INPUT, ORATYPE_VARCHAR2 'ECASTILLO 04.07.2020
+
+Dim FormaPago As OracleInProcServer.OraParamArray
+Dim FPagoHijo As OracleInProcServer.OraParamArray
+Dim ImportePago As OracleInProcServer.OraParamArray
+Dim NumeroTar As OracleInProcServer.OraParamArray
+'Dim CodProdPrecio As OracleInProcServer.OraParamArray 'CVIERA 30.12.2020
+
+Set FormaPago = oradb.Parameters("A_ARR_FORMA_PAGO")
+Set FPagoHijo = oradb.Parameters("A_ARR_FPAGO_HIJO")
+Set ImportePago = oradb.Parameters("A_ARR_IMPORTE_PAGO")
+Set NumeroTar = oradb.Parameters("A_ARR_NUM_TARJETA")
+'Set CodProdPrecio = oradb.Parameters("A_CAD_COD_PRODUCTO")
+'
+'Debug.Print FormaPago
+'Debug.Print FPagoHijo
+'Debug.Print ImportePago
+'Debug.Print NumeroTar
+'Debug.Print CodProdPrecio
+
+'If objVenta.FormaPago.UpperBound(1) > 0 Then
+    For i = 0 To objVenta.FormaPago.UpperBound(1)
+            FormaPago(i) = objVenta.FormaPago(i, 0)
+            FPagoHijo(i) = objVenta.FormaPago(i, 2)
+            ImportePago(i) = objVenta.FormaPago(i, 4)
+            NumeroTar(i) = objVenta.FormaPago(i, 12)
+'            CodProdPrecio(i) = objVenta.FormaPago(i, 13)
+    Next
+'Else
+    'i = 0
+    
+       
+    
+    If optEfectivo = True Then
+       FormaPago(i) = "001"
+       FPagoHijo(i) = "001"
+       ImportePago(i) = 0  'lngTotal
+    ElseIf optCredito = True Then
+       FormaPago(i) = "002"
+       FPagoHijo(i) = strTpTarjeta
+       ImportePago(i) = 0 'lngTotal
+    End If
+'End If
+
+'I.ECASTILLO 02.01.2021
+Open "C:\AppBTL\PreVenta.log" For Append As #1
+    Print #1, "A_COD_CIA: " & vCIA
+    Print #1, "A_COD_LOCAL: " & vCodLocal
+    Print #1, "A_COD_LOCAL_DESPACHO: " & vCodLocalDespacho
+    Print #1, "A_CAD_COD_TIP_VTA: " & strCadTipoVenta
+    Print #1, "A_CAD_COD_PRODUCTO: " & strCadProducto
+    Print #1, "A_CAD_CTD_PRODUCTO: " & strCadCantidad
+    Print #1, "A_CAD_FLG_FRACCION: " & strCadFraccion
+    Print #1, "A_CAD_PRC_SUBTOTAL: " & strCadPrcSubTotal
+    Print #1, "A_CAD_PRC_PUBLICO: " & strCadPrcPublico
+    Print #1, "A_CAD_CTD_PRODUCTO_ORIG: " & strCadCtdProductoOrig
+    Print #1, "A_CAD_FLG_FRACCION_ORIG: " & strCadFlgFraccionOrig
+    Print #1, "A_CAD_FLG_PROMOCION: " & strCadFlgPromocion
+    Print #1, "A_NUM_CMP: " & "000"
+    Print #1, "****************************************"
+    '#Print #1, "A_ARR_FORMA_PAGO: " & A_ARR_FORMA_PAGO
+    '#Print #1, "A_ARR_FPAGO_HIJO: " & A_ARR_FPAGO_HIJO
+    '#Print #1, "A_ARR_IMPORTE_PAGO: " & A_ARR_IMPORTE_PAGO
+    '#Print #1, "A_ARR_NUM_TARJETA: " & A_ARR_NUM_TARJETA
+    '#Print #1, "A_ARR_DES_PRODUCTO: " & A_ARR_DES_PRODUCTO
+        For i = 0 To arrCodProdSeg.ArraySize - 1
+            If Len(Trim(arrCodProdSeg.get_Value(i))) > 0 Then
+    Print #1, "arrCodProdSeg(" & i & "): " & arrCodProdSeg.get_Value(i)
+            End If
+        Next
+        For i = 0 To arrPrcProdSeg.ArraySize - 1
+            If Len(Trim(arrPrcProdSeg.get_Value(i))) > 0 Then
+    Print #1, "arrPrcProdSeg(" & i & "): " & arrPrcProdSeg.get_Value(i)
+            End If
+        Next
+    Print #1, "****************************************"
+    Print #1, "A_COD_CONVENIO: " & vCodConvenio
+    Print #1, "A_TIP_PRECIO: " & "003"
+    Print #1, "A_COD_TIPO_VTA: " & strCadTipoVentaTrue
+    Print #1, "A_COD_CLIENTE: " & objVenta.CodigoCliente
+    Print #1, "A_COD_MEDICO: " & objMedico.vCodMedico
+    Print #1, "A_FLG_CMR: " & gintFidelizado
+    Print #1, "A_COD_LOCAL_CALLCENT: " & objUsuario.CodLocalCallCenter
+    Print #1, "A_CAD_PROMOCION: " & strCadPromocionE
+    Print #1, "==============================================================="
+Close #1
+'F.ECASTILLO 02.01.2021
+
+'oradb.ExecuteSQL " BEGIN BTLPROD.PKG_PRE_VENTA_NEW.SP_PRECIO_TOT_PROD (:A_COD_CIA,:A_COD_LOCAL,:A_CAD_COD_TIP_VTA,:A_CAD_COD_PRODUCTO,:A_CAD_CTD_PRODUCTO,:A_CAD_FLG_FRACCION,:A_CAD_PRC_SUBTOTAL ," _
+'    & ":A_CAD_CTD_PRODUCTO_ORIG, :A_CAD_FLG_FRACCION_ORIG,:A_CAD_FLG_PROMOCION, :A_ARR_FORMA_PAGO, " _
+'    & ":A_ARR_FPAGO_HIJO,:A_ARR_IMPORTE_PAGO,:A_COD_CONVENIO,:A_TIP_PRECIO,:A_CAD_COD_PRODUCTO_NVO,:A_CAD_CTD_PRODUCTO_U_NVO,:A_CAD_CTD_PRODUCTO_F_NVO, " _
+'    & ":A_CAD_PRC_PROD_SUBT_NVO,:A_CAD_FLG_PROD_REGALO,:A_CAD_COD_TIP_VTA_NVO,:A_CAD_IND_RECETA,:A_CAD_PCT_COMI,:A_CAD_DES_PRODUCTO, :A_COD_TIPO_VTA, :A_COD_LOCAL_DESPACHO, :A_CAD_PRC_PUBLICO, :A_CAD_PRC_PUBLIC_OUT, :A_COD_PROMOCION_OUT,:A_COD_PROMOCION_DCTO_OUT,:A_COD_CLIENTE,:A_ARR_NUM_TARJETA, :A_NUM_CMP, :A_COD_MEDICO, :A_FLG_CMR, :A_COD_LOCAL_CALLCENT ) ; END;"
+'ECASTILLO 04.07.2020
+'AQUI COMENTE CVIERA PARA PRUEBAS
+'oradb.ExecuteSQL " BEGIN BTLPROD.PKG_PRE_VENTA_NEW.SP_PRECIO_TOT_PROD_E (:A_COD_CIA,:A_COD_LOCAL,:A_CAD_COD_TIP_VTA,:A_CAD_COD_PRODUCTO,:A_CAD_CTD_PRODUCTO,:A_CAD_FLG_FRACCION,:A_CAD_PRC_SUBTOTAL ," _
+'    & ":A_CAD_CTD_PRODUCTO_ORIG, :A_CAD_FLG_FRACCION_ORIG,:A_CAD_FLG_PROMOCION, :A_ARR_FORMA_PAGO, " _
+'    & ":A_ARR_FPAGO_HIJO,:A_ARR_IMPORTE_PAGO,:A_COD_CONVENIO,:A_TIP_PRECIO, " _
+'    & ":A_COD_TIPO_VTA, :A_COD_LOCAL_DESPACHO, :A_CAD_PRC_PUBLICO,:A_COD_CLIENTE,:A_ARR_NUM_TARJETA, :A_NUM_CMP, :A_COD_MEDICO, :A_FLG_CMR, :A_COD_LOCAL_CALLCENT, :A_CAD_PROMOCION, :A_ARR_DES_PRODUCTO ) ; END;"
+oradb.ExecuteSQL " BEGIN BTLPROD.PKG_PRE_VENTA_NEW.SP_PRECIO_TOT_PROD_E (:A_COD_CIA,:A_COD_LOCAL,:A_CAD_COD_TIP_VTA,:A_CAD_COD_PRODUCTO,:A_CAD_CTD_PRODUCTO,:A_CAD_FLG_FRACCION,:A_CAD_PRC_SUBTOTAL ," _
+    & ":A_CAD_CTD_PRODUCTO_ORIG, :A_CAD_FLG_FRACCION_ORIG,:A_CAD_FLG_PROMOCION, :A_ARR_FORMA_PAGO, " _
+    & ":A_ARR_FPAGO_HIJO,:A_ARR_IMPORTE_PAGO,:A_COD_CONVENIO,:A_TIP_PRECIO, " _
+    & ":A_COD_TIPO_VTA, :A_COD_LOCAL_DESPACHO, :A_CAD_PRC_PUBLICO,:A_COD_CLIENTE,:A_ARR_NUM_TARJETA, :A_NUM_CMP, :A_COD_MEDICO, :A_FLG_CMR, :A_COD_LOCAL_CALLCENT, :A_CAD_PROMOCION, :A_ARR_DES_PRODUCTO , :A_ARR_COD_PROD_SEG, :A_ARR_PRC_PROD_SEG) ; END;"
+       
+    ',:A_CAD_PUNTOS
+   
+'''< 21-ABR-15  TCT Aqui se Toman los parametros OUT para Agregar Producto a la Grilla >
+objVenta.CUANTAMAXIMA = 0
+Dim y As Integer 'ECASTILLO 04.07.2020
+While y < objVenta.xCuantaMaxima.Count(1)
+    objVenta.xCuantaMaxima.DeleteRows (0)
+    'x = x + 1
+Wend
+'cadProdNew = "" & Trim(oradb.Parameters("A_CAD_COD_PRODUCTO_NVO").Value)
+'cadCtdUNew = "" & Trim(oradb.Parameters("A_CAD_CTD_PRODUCTO_U_NVO").Value)
+'cadCtdFNew = "" & Trim(oradb.Parameters("A_CAD_CTD_PRODUCTO_F_NVO").Value)
+'cadPrcNew = "" & Trim(oradb.Parameters("A_CAD_PRC_PROD_SUBT_NVO").Value)
+'cadFlgRegalo = "" & Trim(oradb.Parameters("A_CAD_FLG_PROD_REGALO").Value)
+'cadTipoNew = "" & Trim(oradb.Parameters("A_CAD_COD_TIP_VTA_NVO").Value)
+'cadIndRecetaNew = "" & Trim(oradb.Parameters("A_CAD_IND_RECETA").Value)
+'cadPctComiNew = "" & Trim(oradb.Parameters("A_CAD_PCT_COMI").Value)
+'cadDesProductoNew = "" & Trim(oradb.Parameters("A_CAD_DES_PRODUCTO").Value)
+'
+'cadPrcPublicNew = "" & Trim(oradb.Parameters("A_CAD_PRC_PUBLIC_OUT").Value)  'Se creo esta variable donde devolvera el precio publico
+'strCadPromocion = "" & Trim(oradb.Parameters("A_COD_PROMOCION_OUT").Value) 'devuelve las promociones separadas por ;
+'strCadPromocionDcto = "" & Trim(oradb.Parameters("A_COD_PROMOCION_DCTO_OUT").Value) 'devuelve los descuento de promociones separadas por ;
+strCadPUNTOS = "" & Trim(oradb.Parameters("A_CAD_PUNTOS").Value) 'devuelve los descuento de promociones separadas por ;
+Dim response As OracleInProcServer.OraParamArray
+Dim responseArray As Variant
+Dim responseArray2 As Variant
+Dim x As Integer
+Set response = oradb.Parameters("A_ARR_DES_PRODUCTO")
+'''< 21-ABR-15  TCT Aqui se Toman los parametros OUT para Agregar Producto a la Grilla >
+responseArray2 = Split(response(0), "|")
+If UBound(responseArray2) = 13 Then
+    For x = 0 To responseArray2(13) - 1
+        Debug.Print response(x)
+        responseArray = Split(response(x), "|")
+        cadProdNew = cadProdNew & responseArray(0) & "|"
+        cadCtdUNew = cadCtdUNew & responseArray(1) & "|"
+        cadCtdFNew = cadCtdFNew & responseArray(2) & "|"
+        cadPrcNew = cadPrcNew & responseArray(3) & "|"
+        cadFlgRegalo = cadFlgRegalo & responseArray(4) & "|"
+        cadTipoNew = cadTipoNew & responseArray(5) & "|"
+        cadIndRecetaNew = cadIndRecetaNew & responseArray(6) & "|"
+        cadPctComiNew = cadPctComiNew & responseArray(7) & "|"
+        cadDesProductoNew = cadDesProductoNew & responseArray(8) & "|"
+        cadPrcPublicNew = cadPrcPublicNew & responseArray(9) & "|"
+        strCadPromocion = strCadPromocion & responseArray(10) & "|"
+        strCadPromocionDcto = strCadPromocionDcto & responseArray(11) & "|"
+        strCadFlgSeg = strCadFlgSeg & responseArray(12) & "|"
+    Next
+End If
+'=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+'=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+'=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+
+    For i = 0 To objVenta.Producto2.UpperBound(1)
+        Result = objVenta.Producto.DeleteRows(0)
+    Next
+
+ 
+    'objVenta.Producto.DeleteRows 0, objVenta.Producto.UpperBound(1)
+
+        If cadProdNew = "" Then Exit Sub
+            
+Dim Ind As Integer
+Dim x_i As Integer
+Dim PrecioTot2 As Double
+Dim cadPrcNew2 As String
+cadPrcNew2 = cadPrcNew
+Ind = i
+x_i = 0
+Do While x_i < Ind
+    PrecioTot2 = PrecioTot2 + Val(fncPalote(cadPrcNew2, 0))
+    cadPrcNew2 = fncPalote(cadPrcNew2, 1)
+    x_i = x_i + 1
+Loop
+
+    Do While i > 0
+        Codigo = fncPalote(cadProdNew, 0)
+        Unidades = Val(fncPalote(cadCtdUNew, 0))
+        Fracciones = Val(fncPalote(cadCtdFNew, 0))
+        Precio = Val(fncPalote(cadPrcNew, 0))
+        ''''27/05/2015 puntos, Arturo Escate
+        Dim dblPuntosRed As Double
+        
+        Precio = Val(fncPalote(cadPrcNew, 0)) '- dblPuntosRed
+        'dblPuntosRed = (Val(objVenta.MontoRedime) * Round((Precio / PrecioTot2), 2))
+        Precio = Val(fncPalote(cadPrcNew, 0)) - dblPuntosRed
+        'objVenta.Producto(i - 1, 29) = dblPuntosRed
+        ''''
+        TipVenta = fncPalote(cadTipoNew, 0)
+        RegaloFarmaco = fncPalote(cadFlgRegalo, 0)
+        ''Regalo = fncPalote(cadFlgRegalo, 0)
+        Regalo = left(RegaloFarmaco, 1)
+        flgFarmaco = "0"
+        
+        PrecioPublico = Val(fncPalote(cadPrcPublicNew, 0))
+        
+        CadenaPromo = fncPalote(strCadPromocion, 0)
+        CadenaPromoDcto = fncPalote(strCadPromocionDcto, 0)
+        If Len(RegaloFarmaco) > 1 Then flgFarmaco = right(RegaloFarmaco, 1)
+        CtdProducto = 0
+        If Unidades > 0 And Fracciones > 0 Then
+            CtdProducto = Unidades * intCtdFrac(Codigo) + Fracciones
+            flgFraccion = "1"
+        End If
+        If Unidades > 0 Then CtdProducto = Unidades: flgFraccion = "0"
+        If Fracciones > 0 Then CtdProducto = Fracciones: flgFraccion = "1"
+        
+        ''''''''''''Indicador = CodIndicadorReceta(Codigo)
+        indicador = Val(fncPalote(cadIndRecetaNew, 0))
+        
+        pctComision = Val(fncPalote(cadPctComiNew, 0))
+        
+        strDesProducto = DevCodSap(Codigo) & "-" & fncPalote(cadDesProductoNew, 0)
+        
+        ''''''''''''''''objVenta.AgregaProducto Codigo, ListaDescripcion(Codigo), CtdProducto, flgFraccion, Precio, TipVenta, Regalo, , , , , , Indicador, pctComision
+        'AGREGADO POR PHERRERA 02/01/07
+        encontro = -1
+        If objVenta.ProductoLote.Count(1) > 0 Then
+            encontro = objVenta.ProductoLote.Find(0, 0, Codigo)
+        End If
+        '-----
+        strNroLote = ""
+        strFchVmto = ""
+        
+        If encontro > -1 Then
+            strNroLote = objVenta.ProductoLote(encontro, 22)
+            strFchVmto = objVenta.ProductoLote(encontro, 23)
+        End If
+        
+        Dim strCantPuntos  As String
+        strCantPuntos = fncPalote(strCadPUNTOS, 0)
+        strCadPUNTOS = fncPalote(strCadPUNTOS, 1)
+        '** Para evaluar si se toma el precio publico para el coaseguro **'
+        '** 29/12/2008 CRueda
+        
+        
+''        Dim strFlgPrePublico As String
+''        Dim dblPreCnv As Double
+''        Dim dblPrePlub As Double
+''
+''        strFlgPrePublico = gclsOracle.FN_Valor("BTLPROD.PKG_CONVENIO.FN_FLG_PRECIO_DEDUCIBLE", Trim(objVenta.CodigoConvenio))
+''
+''        If strFlgPrePublico = "1" Then
+''
+''                dblPreCnv = objProducto.Precio(objUsuario.CodigoEmpresa, _
+''                                               objUsuario.CodigoLocal, _
+''                                               Codigo, _
+''                                               "001", _
+''                                               objVenta.CodigoConvenio)
+''
+''                dblPrePlub = objProducto.Precio(objUsuario.CodigoEmpresa, _
+''                                               objUsuario.CodigoLocal, _
+''                                               Codigo, _
+''                                               "001")
+''
+''
+''
+''        End If
+        
+        '**
+        vCadFlgSeg = fncPalote(strCadFlgSeg, 0)
+        If IIf(IsNull(Regalo), Producto_Normal, Regalo) <> Producto_Normal And "" & gclsOracle.FN_Valor("BTLPROD.PKG_PRE_VENTA.FN_DEV_TIPO_PROM", Replace(CadenaPromo, ";", "")) = "VAR" Then
+            Dim gg As Integer
+            'If xProductoRegaloBK.Count(1) = 0 Then
+                objVenta.agregaRegalo Codigo, strDesProducto, CtdProducto, flgFraccion, Precio, TipVenta, Regalo, , , , , , indicador, pctComision, strNroLote, strFchVmto, flgFarmaco, PrecioPublico, CadenaPromo, CadenaPromoDcto, , strCantPuntos, dblPuntosRed
+            'End If
+            Dim yeXISTE As Boolean
+            
+            While gg < xProductoRegaloBK.Count(1)
+                If xProductoRegaloBK(gg, 0) = Codigo And xProductoRegaloBK(gg, 23) = CtdProducto And xProductoRegaloBK(gg, 6) = xProductoRegaloBK(gg, 6) = Regalo Then
+                    objVenta.AgregaProducto Codigo, strDesProducto, CtdProducto, flgFraccion, Precio, TipVenta, Regalo, , , , , , indicador, pctComision, strNroLote, strFchVmto, flgFarmaco, PrecioPublico, CadenaPromo, CadenaPromoDcto, , strCantPuntos, dblPuntosRed
+                    Else
+                    If Regalo <> Producto_Normal Then
+                      objVenta.agregaRegalo Codigo, strDesProducto, CtdProducto, flgFraccion, Precio, TipVenta, Regalo, , , , , , indicador, pctComision, strNroLote, strFchVmto, flgFarmaco, PrecioPublico, CadenaPromo, CadenaPromoDcto, , strCantPuntos, dblPuntosRed
+                      End If
+                End If
+            gg = gg + 1
+            Wend
+            
+        Else
+        objVenta.AgregaProducto Codigo, strDesProducto, CtdProducto, flgFraccion, Precio, TipVenta, Regalo, , , , , , indicador, pctComision, strNroLote, strFchVmto, flgFarmaco, PrecioPublico, CadenaPromo, CadenaPromoDcto, , strCantPuntos, dblPuntosRed, vCadFlgSeg
+        End If
+         Debug.Print Codigo & "-" & strDesProducto & "-" & CtdProducto & "-" & Precio & "-" & Regalo
+        cadProdNew = fncPalote(cadProdNew, 1)
+        cadCtdUNew = fncPalote(cadCtdUNew, 1)
+        cadCtdFNew = fncPalote(cadCtdFNew, 1)
+        cadPrcNew = fncPalote(cadPrcNew, 1)
+        cadTipoNew = fncPalote(cadTipoNew, 1)
+        cadFlgRegalo = fncPalote(cadFlgRegalo, 1)
+        cadIndRecetaNew = fncPalote(cadIndRecetaNew, 1)
+        cadPctComiNew = fncPalote(cadPctComiNew, 1)
+        cadDesProductoNew = fncPalote(cadDesProductoNew, 1)
+        cadPrcPublicNew = fncPalote(cadPrcPublicNew, 1)
+        strCadPromocion = fncPalote(strCadPromocion, 1)
+        strCadPromocionDcto = fncPalote(strCadPromocionDcto, 1)
+        'strCadPromocionDcto = IIf(strCadPromocionDcto = "", "0", strCadPromocionDcto)
+        strCadFlgSeg = fncPalote(strCadFlgSeg, 1)
+        
+        i = Len(cadProdNew)
+    Loop
+
+    'objTimer.StopTimer
+
+    'objTimer.ElapsedTime "Procesa por producto"
+    
+    'Set objTimer = Nothing
+    
+   Exit Sub
+        
+Control:
+
+    Err.Raise Err.number, "clsVenta.GrabarDoc", Err.Description
+        
+'CtrlErr:
+'
+'    Err.Raise Err.Description, "clsProducto", Err.Description
+End Sub
+
+'******************************************************************************************************
+'Devuelve la parte Izquierda(0)o Derecha(1) de la cadena hasta donde encontro el Guion
+'******************************************************************************************************
+Public Function fncPalote(strTexto$, Optional intFlag% = 0, Optional strCar$ = "|") As String
+Dim intA
+    strTexto = CStr(strTexto)
+    intA = InStr(strTexto, strCar)
+    
+    If intA = 0 Then fncPalote = Trim(strTexto): Exit Function
+    If intFlag = 0 Then fncPalote = Trim(left(strTexto, intA - 1))
+    If intFlag = 1 Then fncPalote = Trim(right(strTexto, Len(strTexto) - intA))
+End Function
+
+Public Function intCtdFrac(ByVal vstrProducto As String) As Integer
+    On Error GoTo CntrlError
+    intCtdFrac = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_CTD_FRAC", vstrProducto)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.intCtdFrac", Err.Description
+End Function
+
+'***********************************************************************'
+'                   Para la consulta de productos                       '
+'***********************************************************************'
+
+Public Function ListaLaboratorio() As oraDynaset
+    On Error GoTo CtrlErr
+       Set ListaLaboratorio = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_LABORATORIOS", 0)
+       
+       Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaLinea(ByVal vstrCodLab As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaLinea = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_LINEAS", 0, vstrCodLab)
+        
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+''Agregado el 09/11/2012 para Implementar codigo de Barras y claves del QF para vender estupefacientes
+''Mlevano
+'Public Function ValidaPorProducto(ByVal CodProd As String) As oraDynaset
+'    On Error GoTo CntrlErr
+'        Set ValidaPorProducto = gclsOracle.FN_Cursor("BTLPROD.FN_VALIDACIONES_POR_PRODUCTO", 0, CodProd)
+'
+'        Exit Function
+'CntrlErr:
+'    Err.Raise Err.Number, "clsProducto", Err.Description
+'End Function
+
+
+
+Public Function ListaEstado() As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaEstado = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_ESTADOS", 0)
+    
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaClase() As oraDynaset
+        On Error GoTo CntrlErr
+            Set ListaClase = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_CLASE", 0)
+        
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaSubclase(ByVal vstrCodClase As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaSubclase = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_SUBCLASE", 0, vstrCodClase)
+    
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+
+Public Function ValidacionesPorProducto(ByVal CodProd As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ValidacionesPorProducto = gclsOracle.FN_Cursor("BTLPROD.FN_VALIDACIONES_POR_PRODUCTO", 0, CodProd)
+    
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+
+Public Function ListaGrupo() As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaGrupo = gclsOracle.FN_Cursor("CMR.PKG_TERAPEUTICO.FN_GRUPO_TERAP", 0)
+    
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaAccion(ByVal vstrCodGrpTerapeutico As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaAccion = gclsOracle.FN_Cursor("CMR.PKG_TERAPEUTICO.FN_ACCION_TERAP", 0, vstrCodGrpTerapeutico)
+
+        Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaFamilia(ByVal vstrCodClase As String, _
+                                 ByVal vstrCodSubClase As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaFamilia = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_FAMILIA", 0, vstrCodClase, vstrCodSubClase)
+        
+    Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function ListaCategoria(ByVal vstrCodClase As String, _
+                                   ByVal vstrCodSubClase As String, _
+                                   ByVal vstrCodFam As String) As oraDynaset
+    On Error GoTo CntrlErr
+        Set ListaCategoria = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_CATEGORIA", 0, vstrCodClase, vstrCodSubClase, vstrCodFam)
+        
+    Exit Function
+CntrlErr:
+    Err.Raise Err.number, "clsProducto", Err.Description
+End Function
+
+Public Function IndicadorReceta(ByVal vstrIndicador As String) As String
+
+    On Error GoTo CntrlError
+    IndicadorReceta = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_INIDICADOR_RECETA", vstrIndicador)
+    
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.Indicador_receta", Err.Description
+
+End Function
+
+Public Function consulta(ByVal vstrCodLab As String, _
+                            ByVal vstrCodLin As String, _
+                            ByVal vstrCodClase As String, _
+                            ByVal vstrCodSClase As String, _
+                            ByVal vstrCodFam As String, _
+                            ByVal vstrCodCateg As String, _
+                            ByVal vstrDato As String, _
+                            ByVal vstrEstado As String) As oraDynaset
+    On Error GoTo CntrlError
+        Set consulta = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_CONSULTA", 0, vstrCodLab, vstrCodLin, vstrCodClase, vstrCodSClase, vstrCodFam, vstrCodCateg, vstrDato, vstrEstado)
+        
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.Indicador_receta", Err.Description
+End Function
+
+
+
+Public Function pctComision(ByVal pcodProducto As String, ByVal pCodLocal As String, ByVal pTipoPrecio As String) As Double
+Dim strPctcomision As String
+
+    On Error GoTo CntrlError
+    strPctcomision = gclsOracle.FN_Valor("CMR.FN_PRE_COMISION", pcodProducto, pCodLocal, pTipoPrecio)
+    
+    strPctcomision = fncPalote(strPctcomision)
+    
+    pctComision = Val(strPctcomision)
+    
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.Indicador_receta", Err.Description
+End Function
+''Autor: Juan Arturo Escate Espichan
+''Fecha: 13/06/2011
+''Descripcion: Nadie lo llama esta funcion, se hizo la prueba agregando un parametro
+Public Sub PrecioTotProd(ByVal oradb As OraDatabase, ByVal Cia As String, _
+                    ByVal CodLocal As String, _
+                    ByVal CadTipVta As String, _
+                    ByVal CadCodProducto As String, _
+                    ByVal CadCtdProducto As String, _
+                    ByVal CadFlgFraccion As String, _
+                    ByVal CodConvenio As String, _
+                    ByRef CadCodProductoNvo As String, _
+                    ByRef CadCtdProductoUNvo As String, _
+                    ByRef CadCtdProductoFNvo As String, _
+                    ByRef CadPrcProdUnitNvo As String, _
+                    ByRef CadFlgProdRegalo As String, _
+                    ByRef CadCodTipvtaNvo As String)
+                    
+Dim i As Integer
+                    
+On Error GoTo Control
+
+byteNumElementosFormaPago = IIf(objVenta.FormaPago.UpperBound(1) < 0, 1, objVenta.FormaPago.UpperBound(1)) + 1
+                              
+    For i = oradb.Parameters.Count - 1 To 0 Step -1
+
+        oradb.Parameters.Remove i
+
+    Next
+
+oradb.Parameters.Add "A_COD_CIA", Cia, ORAPARM_INPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_COD_LOCAL", CodLocal, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_COD_TIP_VTA", CadTipVta, ORAPARM_INPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_COD_PRODUCTO", CadCodProducto, ORAPARM_INPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_CTD_PRODUCTO", CadCtdProducto, ORAPARM_INPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_FLG_FRACCION", CadFlgFraccion, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.AddTable "A_ARR_FORMA_PAGO", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200
+oradb.Parameters.AddTable "A_ARR_FPAGO_HIJO", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200
+oradb.Parameters.AddTable "A_ARR_IMPORTE_PAGO", ORAPARM_INPUT, ORATYPE_VARCHAR2, byteNumElementosFormaPago, 200
+
+oradb.Parameters.Add "A_COD_CONVENIO", CodConvenio, ORAPARM_INPUT, ORATYPE_VARCHAR2
+
+oradb.Parameters.Add "A_CAD_COD_PRODUCTO_NVO", "", ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_CTD_PRODUCTO_U_NVO", "", ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_CTD_PRODUCTO_F_NVO", "", ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_PRC_PROD_SUBT_NVO", "", ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_FLG_PROD_REGALO", "", ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+oradb.Parameters.Add "A_CAD_COD_TIP_VTA_NVO", "", ORAPARM_OUTPUT, ORATYPE_VARCHAR2
+                              
+Dim FormaPago As OracleInProcServer.OraParamArray
+Dim FPagoHijo As OracleInProcServer.OraParamArray
+Dim ImportePago As OracleInProcServer.OraParamArray
+
+Set FormaPago = oradb.Parameters("A_ARR_FORMA_PAGO")
+Set FPagoHijo = oradb.Parameters("A_ARR_FPAGO_HIJO")
+Set ImportePago = oradb.Parameters("A_ARR_IMPORTE_PAGO")
+
+If objVenta.FormaPago.UpperBound(1) <> 0 Then
+For i = 0 To objVenta.FormaPago.UpperBound(1)
+        FormaPago(i) = objVenta.FormaPago(i, 0)
+        FPagoHijo(i) = objVenta.FormaPago(i, 2)
+        ImportePago(i) = objVenta.FormaPago(i, 4)
+Next
+Else
+    'If optEfectivo = True Then
+    '   FormaPago(i) = "001"
+    '   FPagoHijo(i) = "001"
+    '   ImportePago(i) = total
+    'Elsif optEfectivo = True Then
+    '   FormaPago(i) = "002"
+    '   FPagoHijo(i) = "XXX"'tipo de tarjeta
+    '   ImportePago(i) = total
+    'end if
+    
+End If
+'
+'
+
+oradb.ExecuteSQL " BEGIN BTLPROD.PKG_PRE_VENTA.SP_PRECIO_TOT_PROD(:A_COD_CIA,:A_COD_LOCAL,:A_CAD_COD_TIP_VTA,:A_CAD_COD_PRODUCTO,:A_CAD_CTD_PRODUCTO,:A_CAD_FLG_FRACCION,:A_ARR_FORMA_PAGO, " _
+    & ":A_ARR_FPAGO_HIJO,:A_ARR_IMPORTE_PAGO,:A_COD_CONVENIO,:A_CAD_COD_PRODUCTO_NVO,:A_CAD_CTD_PRODUCTO_U_NVO,:A_CAD_CTD_PRODUCTO_F_NVO, " _
+    & ":A_CAD_PRC_PROD_SUBT_NVO,:A_CAD_FLG_PROD_REGALO,:A_CAD_COD_TIP_VTA_NVO ) ; END;"
+
+CadCodProductoNvo = Trim(oradb.Parameters("A_CAD_COD_PRODUCTO_NVO").Value)
+CadCtdProductoUNvo = Trim(oradb.Parameters("A_CAD_CTD_PRODUCTO_U_NVO").Value)
+CadCtdProductoFNvo = Trim(oradb.Parameters("A_CAD_CTD_PRODUCTO_F_NVO").Value)
+CadPrcProdUnitNvo = Trim(oradb.Parameters("A_CAD_PRC_PROD_SUBT_NVO").Value)
+CadFlgProdRegalo = Trim(oradb.Parameters("A_CAD_FLG_PROD_REGALO").Value)
+CadCodTipvtaNvo = Trim(oradb.Parameters("A_CAD_COD_TIP_VTA_NVO").Value)
+
+    Exit Sub
+Control:
+
+    Err.Raise Err.number, "clsProducto.PrecioTotProd", Err.Description
+End Sub
+
+Public Function ConsultaLocal(ByVal vstrCodLab As String, _
+                            ByVal vstrCodLin As String, _
+                            ByVal vstrCodClase As String, _
+                            ByVal vstrCodSClase As String, _
+                            ByVal vstrCodFam As String, _
+                            ByVal vstrCodCateg As String, _
+                            ByVal vstrDato As String, _
+                            ByVal vstrEstado As String, _
+                            ByVal vstrCodLocal As String, _
+                            ByVal vstrFlgStock As String) As oraDynaset
+    On Error GoTo CntrlError
+        Set ConsultaLocal = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_CONSULTA_LOCAL", 0, vstrCodLab, vstrCodLin, vstrCodClase, vstrCodSClase, vstrCodFam, vstrCodCateg, vstrDato, vstrEstado, vstrCodLocal, vstrFlgStock)
+        
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.ConsultaLocal", Err.Description
+End Function
+
+Public Function DevLabLineaProd(ByVal CodigoProd As String, ByVal Tipo As String) As String
+    On Error GoTo CntrlError
+    DevLabLineaProd = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_DEV_LAB_LINEA_PROD", CodigoProd, Tipo)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.DevLabLineaProd", Err.Description
+End Function
+
+Public Function EvaluaCtdVta(ByVal Cia As String, ByVal CodLocal As String, ByVal codProducto As String, ByVal cantidad As Double, ByVal FlgFracciona As String) As String
+
+    On Error GoTo CntrlError
+    EvaluaCtdVta = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_EVALUA_CTD_VTA", Cia, CodLocal, codProducto, cantidad, FlgFracciona)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.DevLabLineaProd", Err.Description
+End Function
+
+Public Function DevMaxProducto(ByVal Cia As String, ByVal CodLocal As String, codProducto As String) As Integer
+                        
+On Error GoTo CtrlErr
+
+    DevMaxProducto = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_DEV_MAX_PRODUCTO", Cia, CodLocal, codProducto)
+    
+    Exit Function
+CtrlErr:
+        Err.Raise Err.number, "clsProducto.DevMaxProducto", Err.Description
+End Function 'ECASTILLO 05.07.2020
+Public Function GetCodInka(ByVal codProducto As String) As String
+On Error GoTo CtrlErr
+    GetCodInka = "" & gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_GET_COD_PROD_INKFARMA", codProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.GetCodInka", Err.Description
+End Function
+'I.ECASTILLO 27.10.2020
+Public Function getCodSapInka(ByVal codProducto As String) As String
+On Error GoTo CtrlErr
+    getCodSapInka = "" & gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_GET_COD_PROD_SAP_INKFARMA", codProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.getCodSapInka", Err.Description
+End Function
+'F.ECASTILLO 27.10.2020
+'ECASTILLO 05.07.2020
+Public Function GetCodPosu(ByVal codProducto As String) As String
+On Error GoTo CtrlErr
+    GetCodPosu = "" & gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_GET_COD_PROD_MFARMA", codProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.GetCodPosu", Err.Description
+End Function
+
+'ECASTILLO 05.07.2020
+Public Function GetCodBTL(ByVal codProducto As String) As String
+On Error GoTo CtrlErr
+    GetCodBTL = "" & gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_GET_COD_PROD_BTL", codProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clssProducto.GetCodBTL", Err.Description
+End Function
+
+'Agregado por MLEVANO para busqueda por codigo sap
+Public Function DevCodSap(ByVal codProducto As String) As String
+On Error GoTo CtrlErr
+
+    DevCodSap = "" & gclsOracle.FN_Valor("BTLPROD.FN_DEV_COD_SAP", codProducto)
+    
+    Exit Function
+CtrlErr:
+        Err.Raise Err.number, "clsProducto.DevCodSap", Err.Description
+End Function
+'agregado por MLEVANO para NRO LOTE GUIA
+Public Function DevFraccionProducto(ByVal codProducto As String) As Double
+On Error GoTo CtrlErr
+
+    DevFraccionProducto = gclsOracle.FN_Valor("BTLPROD.FN_DEV_FRAC_PRODUCTO", codProducto)
+    
+    Exit Function
+CtrlErr:
+        Err.Raise Err.number, "clsProducto.DevFraccionProducto", Err.Description
+End Function
+'Agregado por MLEVANO para INDICADOR LOTE 20/11/2012
+Public Function DevIndicadorLote(ByVal codProducto As String) As String
+On Error GoTo CtrlErr
+
+    DevIndicadorLote = gclsOracle.FN_Valor("BTLPROD.FN_INDICADOR_LOTES", codProducto)
+    
+    Exit Function
+CtrlErr:
+        Err.Raise Err.number, "clsProducto.DevIndicadorLote", Err.Description
+End Function
+
+
+Public Sub ImprimeBusquedaProducto(ByVal oraBusquedaProducto As oraDynaset, ByVal strOpcion As String)
+
+Dim Impresora As Printer
+
+Dim intNumLineas As Long
+Dim intNumPaginas As Integer
+Dim intNumLotes As Integer
+Dim intMaxPaginas As Integer
+Dim intMaxLineas As Integer
+Const MAX_PAGINAS_X_LOTES = 20
+Const MAX_LINEAS_X_PAGINAS = 64              ' 59---75 lineas
+Dim intLineas, intPaginas, intLotes As Integer
+Dim intK As Integer
+
+Dim StrSql As String
+Dim rstImpresion As oraDynaset
+      
+Dim intRespuesta As Integer
+      
+   On Error GoTo ErrorImpresora              ' NO HAY
+      
+   Set rstImpresion = oraBusquedaProducto.Clone
+   If (rstImpresion.EOF) Then
+      MsgBox "No existen registros a imprimir", vbInformation, "Impresión"
+      Exit Sub
+   Else
+      rstImpresion.MoveFirst
+   End If
+   'rstImpresion.MoveFirst
+   rstImpresion.MoveLast
+   
+   Set Impresora = Printer
+      
+   Impresora.Height = 280 * 56.7
+   Impresora.Width = 260 * 56.7
+
+   ''''ESTOS DATOS HAY QUE CALCULARLOS
+   
+   intNumLineas = IIf(strOpcion = "N", rstImpresion.RecordCount * 2, rstImpresion.RecordCount)
+   
+   rstImpresion.MoveFirst
+   intNumPaginas = (intNumLineas \ MAX_LINEAS_X_PAGINAS) + IIf((intNumLineas Mod MAX_LINEAS_X_PAGINAS = 0), 0, 1)
+   intNumLotes = (intNumPaginas \ MAX_PAGINAS_X_LOTES) + IIf((intNumPaginas Mod MAX_PAGINAS_X_LOTES = 0), 0, 1)
+   '''''''''''''''''''''''''''''''''''
+
+   Impresora.Print "."
+   
+   Impresora.FontName = IIf(strOpcion = "S", "Draft 17cpi", "Draft 17cpi")
+   
+   For intLotes = 1 To intNumLotes
+   
+       If intNumPaginas - ((intLotes - 1) * MAX_PAGINAS_X_LOTES) > MAX_PAGINAS_X_LOTES Then
+          intMaxPaginas = MAX_PAGINAS_X_LOTES
+       Else
+          intMaxPaginas = intNumPaginas - ((intLotes - 1) * MAX_PAGINAS_X_LOTES)
+       End If
+       For intPaginas = 1 To intMaxPaginas
+   
+           If intNumLineas - ((intPaginas - 1) * MAX_LINEAS_X_PAGINAS) > MAX_LINEAS_X_PAGINAS Then
+              intMaxLineas = MAX_LINEAS_X_PAGINAS
+           Else
+              intMaxLineas = intNumLineas - ((intPaginas - 1) * MAX_LINEAS_X_PAGINAS)
+           End If
+           Impresora.Print Space(IIf(strOpcion = "S", 83, 110)) & CStr(objUsuario.sysdate)
+           Impresora.Print 'Space(IIf(strOpcion = "S", 83, 110)) & CStr(Time)
+           Impresora.Print "                                         REPORTE DE PRODUCTOS BTL " & objUsuario.CodigoLocal
+           Impresora.Print "Usuario : " & objUsuario.Codigo & " - " & objUsuario.Nombre
+           Impresora.Print
+           Impresora.Print " PRODUCTO                                          LABORAT. LINEA    FRACC  CODIGO MIN MAX " & IIf(strOpcion = "N", "   UNIDADES  | FRACCIONES ", "  CANTIDAD " & IIf(strOpcion = "S", "", IIf(strOpcion = "T", "  IMPORTE  DESC_01  DESC_02  DESC_03   E ", "  REAL__U  REAL__F   DIF_U    DIF_F ")))
+           Impresora.Print "-------------------------------------------------- -------- -------- -----  ------ --- --- " & IIf(strOpcion = "N", "  ---------- | ---------- ", "-----------" & IIf(strOpcion = "S", "", IIf(strOpcion = "T", "  -------  -------  -------  -------  ---", "  -------  -------  -------  -------")))
+           '''''''''''''''''12345678901234567890123456789012345678901234567890 12345678 12345678 12345  12345
+           Impresora.Print
+           
+           For intLineas = (1 + ((intPaginas - 1) * MAX_LINEAS_X_PAGINAS)) To (intMaxLineas + ((intPaginas - 1) * MAX_LINEAS_X_PAGINAS))
+            
+               If strOpcion = "N" Then
+                  Impresora.Print "                                                                                           .-----------" & IIf(Val("0" & rstImpresion("CTD_FRACCIONAMIENTO").Value) = 0, ".", "------------.")
+                  intLineas = intLineas + 1
+               End If
+
+               'impresora.Print CME(rstImpresion.Fields("cod_producto"), 10, "I") & _
+                               CME(Mid("" & rstImpresion.Fields("dsc_producto"), 1, 38), 40, "I") & _
+                               CME("" & rstImpresion.Fields("cod_linea"), 6, "I") & _
+                               CME("" & IIf(Val("0" & rstImpresion.Fields("ctd_fraccion")) = 0, "", rstImpresion.Fields("ctd_fraccion")), 5, "D") & _
+                               IIf(strOpcion <> "N", CME("" & IIf(Val("0" & rstImpresion.Fields("ctd_producto")) = 0, "", rstImpresion.Fields("ctd_producto")), 6, "D") & _
+                               CME("" & IIf(Val("0" & rstImpresion.Fields("ctd_productofrac")) = 0, "", "F" & rstImpresion.Fields("ctd_productofrac")), 6, "I") & _
+                               IIf(strOpcion = "T", CME("" & Format(rstImpresion.Fields("imp_producto"), "##0.#0"), 9, "D") & _
+                               CME("" & Format(rstImpresion.Fields("pct_descuento1"), "##0.#0"), 9, "D") & _
+                               CME("" & Format(rstImpresion.Fields("pct_descuento2"), "##0.#0"), 9, "D") & _
+                               CME("" & Format(rstImpresion.Fields("pct_descuento3"), "##0.#0"), 9, "D") & _
+                               CME("" & strDameEstado(rstImpresion.Fields("flg_estado")), 9, "D"), "  |________|________|________|________|________|"), "  |___________" & IIf(Val("0" & rstImpresion.Fields("ctd_fraccion")) = 0, "|", "F___________|"))
+                               
+                               
+               Impresora.Print CME(Mid("" & rstImpresion("DESCRIPCION").Value, 1, 50), 51, "I") & _
+                               CME("" & rstImpresion("DES_LABORATORIO").Value, 9, "I") & _
+                               CME("" & rstImpresion("DES_LINEA").Value, 9, "I") & _
+                               CME("" & IIf(Val("0" & rstImpresion("CTD_FRACCIONAMIENTO").Value) = 0, "", rstImpresion("CTD_FRACCIONAMIENTO").Value), 5, "D") & "  " & _
+                               CME(rstImpresion("CODIGO").Value, 7, "I") & _
+                               CME("" & rstImpresion("VAL_MIN").Value, 3, "D") & _
+                               CME("" & rstImpresion("VAL_MAX").Value, 3, "D") & _
+                               IIf(strOpcion <> "N", CME("" & IIf(Val(rstImpresion("STOCK").Value) = 0, "", rstImpresion("STOCK").Value), 6, "D"), "") & _
+                               "  |___________" & IIf(Val("0" & rstImpresion("CTD_FRACCIONAMIENTO").Value) = 0, "|", "F___________|")
+
+                               ''''varNulo(IIf(Len(Trim(rstImpresion.Fields("num_telefono"))) > 8, Mid(rstImpresion.Fields("num_telefono"), 1, 8) & " | " & Trim(Mid(rstImpresion.Fields("num_telefono"), 10)), varNulo(rstImpresion.Fields("num_telefono"))))
+                               
+'''               Impresora.Print rstImpresion.Fields("cod_producto") & _
+'''                               Space$(10 - Len(rstImpresion.Fields("cod_producto"))) & _
+'''                               Mid("" & rstImpresion.Fields("dsc_producto"), 1, 38) & Space$(40 - Len(Mid("" & rstImpresion.Fields("dsc_producto"), 1, 38))) & _
+'''                               "" & rstImpresion.Fields("cod_laboratorio") & Space$(6 - Len("" & rstImpresion.Fields("cod_laboratorio"))) & _
+'''                               Space$(8 - Len(CStr("" & rstImpresion.Fields("ctd_producto")))) & CStr("" & rstImpresion.Fields("ctd_productofrac")) & _
+'''                               Space$(8 - Len(CStr("" & rstImpresion.Fields("ctd_productofrac")))) & CStr("" & rstImpresion.Fields("ctd_productofrac")) & _
+'''                               Space$(5 - Len(CStr("" & rstImpresion.Fields("num_unidad_fraccionamiento")))) & CStr("" & rstImpresion.Fields("num_unidad_fraccionamiento")) & _
+'''                               Space$(9 - Len(CStr("" & rstImpresion.Fields("imp_producto")))) & CStr("" & rstImpresion.Fields("imp_producto")) & _
+'''                               Space$(9 - Len(CStr("" & rstImpresion.Fields("pct_descuento1")))) & CStr("" & rstImpresion.Fields("pct_descuento1")) & _
+'''                               Space$(9 - Len(CStr("" & rstImpresion.Fields("pct_descuento2")))) & CStr("" & rstImpresion.Fields("pct_descuento2")) & _
+'''                               Space$(9 - Len(CStr("" & rstImpresion.Fields("pct_descuento3")))) & CStr("" & rstImpresion.Fields("pct_descuento3")) & _
+'''                               Space$(9 - Len(CStr("" & rstImpresion.Fields("pct_descuento4")))) & CStr("" & rstImpresion.Fields("pct_descuento4"))
+'''                               ''''varNulo(IIf(Len(Trim(rstImpresion.Fields("num_telefono"))) > 8, Mid(rstImpresion.Fields("num_telefono"), 1, 8) & " | " & Trim(Mid(rstImpresion.Fields("num_telefono"), 10)), varNulo(rstImpresion.Fields("num_telefono"))))
+'''
+               rstImpresion.MoveNext
+               
+''''''''''''''''''''''''''''''''''''''1   cod_producto,               8
+''''''''''''''''''''''''''''''''''''''2   dsc_producto,               50
+''''''''''''''''''''''''''''''''''''''3   cod_laboratorio,            8
+''''''''''''''''''''''''''''''''''''''4   ctd_fraccionamiento,        entero
+''''''''''''''''''''''''''''''''''''''5   num_unidad_fraccionamiento, 3
+''''''''''''''''''''''''''''''''''''''6   imp_producto,               simple
+''''''''''''''''''''''''''''''''''''''7   pct_descuento1,             simple
+''''''''''''''''''''''''''''''''''''''8   pct_descuento2,             simple
+''''''''''''''''''''''''''''''''''''''9   pct_descuento3,             simple
+''''''''''''''''''''''''''''''''''''''10  pct_descuento4,             simple
+''''''''''''''''''''''''''''''''''''''11  flg_fraccionamiento,        1
+''''''''''''''''''''''''''''''''''''''12  flg_preferente,
+''''''''''''''''''''''''''''''''''''''13  flg_receta_medica,
+''''''''''''''''''''''''''''''''''''''14  flg_refrigerado,
+''''''''''''''''''''''''''''''''''''''15  flg_canje,
+''''''''''''''''''''''''''''''''''''''16  flg_superproducto,
+''''''''''''''''''''''''''''''''''''''17  flg_oferta,
+''''''''''''''''''''''''''''''''''''''18  fch_fin_superproducto,
+''''''''''''''''''''''''''''''''''''''19  flg_estado,
+''''''''''''''''''''''''''''''''''''''20  pct_comision,               entero
+''''''''''''''''''''''''''''''''''''''21  imp_comision                entero
+''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''"FROM m_productos a"
+           Next intLineas
+           For intK = 1 To (MAX_LINEAS_X_PAGINAS - intMaxLineas)
+              Impresora.Print
+           Next intK
+           Impresora.Print
+           Impresora.Print Space(IIf(strOpcion = "S", 83, 110)) & intPaginas
+           'Cambio de Pagina
+           If intNumPaginas > 1 Then
+              Impresora.NewPage
+           End If
+           
+       Next intPaginas
+       Impresora.EndDoc
+       
+   Next intLotes
+   rstImpresion.Close
+   
+   On Error GoTo 0
+
+   Exit Sub
+   
+ErrorImpresora:
+
+   intRespuesta = MsgBox("Existe un problema con la impresora" & Chr(13) & "Desea esperar a ser resuelto?", vbYesNo)
+   If intRespuesta = vbYes Then
+       Resume
+   Else
+       Exit Sub
+   End If
+   
+End Sub
+
+Public Function ConsultaProductoLocal(ByVal vstrCodLab As String, _
+                            ByVal vstrCodLin As String, _
+                            ByVal vstrCodClase As String, _
+                            ByVal vstrCodSClase As String, _
+                            ByVal vstrCodFam As String, _
+                            ByVal vstrCodCateg As String, _
+                            ByVal vstrDato As String, _
+                            ByVal vstrEstado As String, _
+                            ByVal vstrCodLocal As String, _
+                            ByVal vstrFlgStock As String, _
+                            ByVal vstrFlgConStock As String, ByVal FlgFracciona As String) As oraDynaset
+    On Error GoTo CntrlError
+        Set ConsultaProductoLocal = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_CONSULTA_PRODUCTO_LOCAL", 0, vstrCodLab, vstrCodLin, vstrCodClase, vstrCodSClase, vstrCodFam, vstrCodCateg, vstrDato, vstrEstado, vstrCodLocal, vstrFlgStock, vstrFlgConStock, FlgFracciona)
+        
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.ConsultaProductoLocal", Err.Description
+End Function
+
+
+Public Function ConsultaPromocionProducto(ByVal Cod_producto As String, ByVal CodLocal_Callcenter As String, ByVal CodLocal As String) As oraDynaset
+    On Error GoTo CntrlError
+        Set ConsultaPromocionProducto = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_PROMOCIONPRODUCTO", 0, Cod_producto, CodLocal_Callcenter, CodLocal)
+        
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.ConsultaPromocionProducto", Err.Description
+End Function
+
+Public Function ConsultaProductoLocalComisionados(ByVal vstrCodLab As String, _
+                                                  ByVal vstrCodLin As String, _
+                                                  ByVal vstrCodClase As String, _
+                                                  ByVal vstrCodSClase As String, _
+                                                  ByVal vstrCodFam As String, _
+                                                  ByVal vstrCodCateg As String, _
+                                                  ByVal vstrCodGrupo As String, _
+                                                  ByVal vstrCodAccion As String, _
+                                                  ByVal vstrDato As String, _
+                                                  ByVal vstrCodLocal As String, _
+                                                  ByVal vstrFlgConStock As String) As oraDynaset
+    On Error GoTo CntrlError
+        Set ConsultaProductoLocalComisionados = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO_LOCAL.FN_CONS_PROD_LOCAL_COMISION", 0, vstrCodLab, vstrCodLin, vstrCodClase, vstrCodSClase, vstrCodFam, vstrCodCateg, vstrCodGrupo, vstrCodAccion, vstrDato, vstrCodLocal, vstrFlgConStock)
+        
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.ConsultaProductoLocalComisionados", Err.Description
+End Function
+
+Public Function CodIndicadorReceta(ByVal vstrCodProd As String) As String
+    On Error GoTo CntrlError
+    CodIndicadorReceta = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_COD_INDICADOR_RECETA", vstrCodProd)
+
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.CodIndicadorReceta", Err.Description
+End Function
+
+Public Function FlgInafecto(ByVal vstrCodProd As String) As String
+    On Error GoTo CntrlError
+    FlgInafecto = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_FLG_INAFECTO", vstrCodProd)
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.FlgInafecto", Err.Description
+End Function
+
+Public Function CodBarraProducto(ByVal vstrCodProdBarra As String) As String
+On Error GoTo CntrlError
+    CodBarraProducto = gclsOracle.FN_Valor("NUEVO.FN_ES_PRODUCTO", vstrCodProdBarra)
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.CodBarraProducto", Err.Description
+End Function
+
+Public Function FnEsModalidad_Recetario(ByVal vstrCodProducto As String) As Double
+On Error GoTo CtrlErr
+    FnEsModalidad_Recetario = gclsOracle.FN_Valor("BTLPROD.PKG_DOCUMENTO.FN_VAL_MODALIDAD_ES_RECETARIO", vstrCodProducto)
+    
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsDocumento.FnEsModalidad_Recetario", Err.Description
+End Function
+
+Public Function ConsultaPetitorio(ByVal Criterio As String, ByVal CodigoConvenio As String) As oraDynaset
+    On Error GoTo CntrlError
+        Set ConsultaPetitorio = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_LISTA_X_PETITORIO", 0, Criterio, CodigoConvenio)
+    Exit Function
+CntrlError:
+    Err.Raise Err.number, "clsProducto.ConsultaLocal", Err.Description
+End Function
+
+Public Function Stock(ByVal strCodProducto As String, _
+                    ByVal strCodBTL As String, _
+                    ByVal strFlgPresentaF As String, _
+                    Optional intCtdIncremento As Integer = 0, _
+                    Optional intCtdIncrementoFrac As Integer = 0, _
+                    Optional strCtdFraccionamiento As String = "", _
+                    Optional strCodLocalSolict As String = "") As String
+                    
+                    
+On Error GoTo CtrlErr
+    Stock = gclsOracle.FN_Valor("NUEVO.FN_BTL_STOCK", strCodProducto, strCodBTL, strFlgPresentaF, intCtdIncremento, intCtdIncrementoFrac, strCtdFraccionamiento, strCodLocalSolict)
+    
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.Stock", Err.Description
+End Function
+
+Public Function EsEspecieValorada(ByVal strCodProducto As String) As String
+
+On Error GoTo CtrlErr
+    EsEspecieValorada = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_LISTA_ESPECIE_VAL", strCodProducto)
+    
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.EsEspecieValorada", Err.Description
+
+End Function
+
+'Funcion agregada por DJara para Logistica Fase III - 22/10/2008
+Public Function Precio(ByVal strCodigoCia As String, _
+                        ByVal strCodigoLocal As String, _
+                        ByVal strCodigoProducto As String, _
+                        ByVal strTipoPrecio As String, _
+                        Optional ByVal strCodigoConvenio As String = "") As String
+On Error GoTo CtrlErr
+    Precio = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_PRECIO", strCodigoCia, strCodigoLocal, strCodigoProducto, strTipoPrecio, strCodigoConvenio)
+    
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.Precio", Err.Description
+End Function
+
+Public Function ProdComplementario(ByVal strCodCia As String, _
+                                   ByVal strCodLocal As String, _
+                                   ByVal strCodPrecio As String, _
+                                   ByVal strCodProd As String, _
+                                   ByVal strCodLocalSolict As String, _
+                                   ByVal CodigoConvenio As String, _
+                                   Optional strCodCiaSolict As String = "") As oraDynaset
+
+On Error GoTo CtrlErr
+    Set ProdComplementario = gclsOracle.FN_Cursor("CMR.PKG_PROUCTO_COMPLEMENTARIO.FN_LISTA_PRODUCTOS", 0, strCodCia, _
+                                                                                                          strCodLocal, _
+                                                                                                          strCodPrecio, _
+                                                                                                          strCodProd, _
+                                                                                                          strCodLocalSolict, _
+                                                                                                          strCodCiaSolict)
+    
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.ProdComplementario", Err.Description
+End Function
+
+Public Property Get desProducto() As String
+
+    desProducto = m_sDesProducto
+
+End Property
+
+Public Property Let desProducto(ByVal sDesProducto As String)
+
+    m_sDesProducto = sDesProducto
+
+End Property
+
+
+Public Function EsPsicotropico(ByVal CodigoProducto As String) As String
+On Error GoTo CtrlErr
+    EsPsicotropico = gclsOracle.FN_Valor("CMR.PKG_PRODUCTO.FN_DEV_PSICOTOPICO", CodigoProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.EsPsicotropico", Err.Description
+End Function
+
+Public Function fnBuscaProducto(ByVal CodigoProducto As String) As oraDynaset
+On Error GoTo CtrlErr
+    If Len(CodigoProducto) > 5 Then
+        CodigoProducto = gclsOracle.FN_Valor("NUEVO.FN_BUSCA_PRODUCTO", CodigoProducto)
+    End If
+    Set fnBuscaProducto = gclsOracle.FN_Cursor("CMR.PKG_PRODUCTO.FN_DATO", 0, CodigoProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.fnBuscaProducto", Err.Description
+End Function
+
+Public Function ListaExcluyeMayorista(Optional CodigoProducto As String = "0") As oraDynaset
+    On Error GoTo CtrlErr
+    Set ListaExcluyeMayorista = gclsOracle.FN_Cursor("BTLPROD.PKG_PRODUCTOS.FN_LISTA_EXCLUYE_MAYORISTA", 0, CodigoProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.ListaExcluyeMayorista", Err.Description
+End Function
+
+
+Public Function ListaFraccionamientoSugerido(CodigoProducto As String) As oraDynaset
+    On Error GoTo CtrlErr
+    Set ListaFraccionamientoSugerido = gclsOracle.FN_Cursor("BTLPROD.FN_DEV_FRACCION_DLV", 0, CodigoProducto)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.ListaFraccionamientoSugerido", Err.Description
+End Function
+'I.ECASTILLO 22.10.2020
+Public Function ListaFraccionamientoSugeridoV2(CodigoProducto As String, Optional CodLocal As String) As oraDynaset
+    On Error GoTo CtrlErr
+    Set ListaFraccionamientoSugeridoV2 = gclsOracle.FN_Cursor("BTLPROD.FN_DEV_FRACCION_DLV_V2", 0, CodigoProducto, CodLocal)
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.ListaFraccionamientoSugeridoV2", Err.Description
+End Function
+'F.ECASTILLO 22.10.2020
+
+Function ParametroSugerido() As String
+'0= no muestra nada
+'1= Obliga
+'2= sugiere
+    ParametroSugerido = "" & gclsOracle.FN_Valor("NUEVO.PKG_PARAMETRO.FN_VALOR", "FLGEXIGSUG")
+End Function
+
+Public Function ReporteProductoStockZero(ByVal cCodGrupoCia_in As String, ByVal cCodLocal_in As String, ByVal cCodProd_in As String, ByVal cProd_desc_in As String, ByVal cOrigenRep As String, ByVal cUsuCrea_in As String) As String
+    On Error GoTo CtrlErr
+    Dim varValores As Variant
+    Dim varIO As Variant
+    
+    varValores = Array(cCodGrupoCia_in, _
+                       cCodLocal_in, _
+                       cCodProd_in, _
+                       cProd_desc_in, _
+                       cOrigenRep, _
+                       cUsuCrea_in)
+
+    varIO = Array(entrada, entrada, entrada, entrada, entrada, entrada)
+
+    ReporteProductoStockZero = gclsOracle.SP("PTOVENTA.Ptoventa_Reporte.REPORTE_ABANDONO_LOCAL", _
+                                                           varValores, varIO)
+
+    Debug.Print ReporteProductoStockZero
+    Exit Function
+CtrlErr:
+    Err.Raise Err.number, "clsProducto.ReporteProductoStockZero", Err.Description
+End Function
+
