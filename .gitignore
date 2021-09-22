@@ -23,7 +23,6 @@ cabal.project.local~
 .ghc.environment.*
 .DS_Store
 .Trashes
-*.vbw
 *.csi
 *.exp
 *.lib
