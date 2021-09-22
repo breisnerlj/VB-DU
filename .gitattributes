@@ -16,6 +16,7 @@
 *.dll binary
 *.ico binary
 *.gif binary
+*.ctx binary
 *.ocx binary
 *.tlb binary
 *.ocx.bin binary
