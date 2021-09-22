@@ -1,0 +1,70 @@
+Date: 05/05/2021 11:48:01 a.m.
+User: 
+SQL:  BEGIN :SALIDA := BTLPROD.PKG_MAQUINA.FN_LISTA ( :A_0); END;
+Params: A_0 => 10.18.0.108
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: 
+SQL:  BEGIN :SALIDA := BTLPROD.PKG_MAQUINA.FN_LISTA ( :A_0); END;
+Params: A_0 => 10.18.0.108
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: 
+SQL:  BEGIN :SALIDA := CMR.PKG_USUARIO.FN_LOGIN ( :A_0, :A_1); END;
+Params: A_0 => MF797, A_1 => FP2020
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: MF797
+SQL:  BEGIN :SALIDA := BTLPROD.PKG_EMPRESA.FN_LISTA ( :A_0); END;
+Params: A_0 => 10
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: MF797
+SQL:  BEGIN :SALIDA := BTLPROD.PKG_FORMA_PAGO.FN_LISTA_MONEDA ( :A_0); END;
+Params: A_0 => 1
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: MF797
+SQL:  BEGIN :SALIDA := BTLPROD.PKG_LOCAL.FN_LISTA_PARAMETROS ( :A_0); END;
+Params: A_0 => 10
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: MF797
+SQL:  BEGIN :SALIDA := BTLPROD.PKG_USUARIO.FN_LISTA_INICIO_CAJA ( :A_0, :A_1, :A_2, :A_3); END;
+Params: A_0 => 10, A_1 => MF797, A_2 => DLV, A_3 => JESCATE
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: MF797
+SQL:  BEGIN :SALIDA := NUEVO.PKG_PERMISO.FN_LISTA_MENU ( :A_0, :A_1); END;
+Params: A_0 => 14, A_1 => MF797
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: MF797
+SQL:  BEGIN :SALIDA := BTLPROD.PKG_FORMA_PAGO.FN_LISTA_HIJO2 ( :A_0); END;
+Params: A_0 => 002
+==============================================================================================
+Date: 05/05/2021 11:48:01 a.m.
+User: MF797
+SQL:  BEGIN :SALIDA := NUEVO.PKG_PERMISO.FN_LISTA_MENU_HIJO ( :A_0, :A_1, :A_2); END;
+Params: A_0 => 14, A_1 => MF797, A_2 => 076
+==============================================================================================
+Date: 05/05/2021 03:35:54 p.m.
+User: MF797
+SQL: 
+Params: 
+Error: SQL execution error, ORA-06550: línea 1, columna 27:
+PLS-00201: el identificador 'NUEVO.PKG_PARAMETRO' se debe declarar
+ORA-06550: línea 1, columna 8:
+PL/SQL: Statement ignored
+
+==============================================================================================
+Date: 05/05/2021 03:37:06 p.m.
+User: MF797
+SQL: 
+Params: 
+Error: SQL execution error, ORA-06550: línea 1, columna 27:
+PLS-00201: el identificador 'NUEVO.PKG_PARAMETRO' se debe declarar
+ORA-06550: línea 1, columna 8:
+PL/SQL: Statement ignored
+
+==============================================================================================
